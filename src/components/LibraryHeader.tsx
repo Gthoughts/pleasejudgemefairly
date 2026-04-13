@@ -16,7 +16,7 @@ export default async function LibraryHeader() {
         <Link href="/" className="font-medium hover:text-stone-600">
           pleasejudgemefairly
         </Link>
-        <nav className="flex items-center gap-5 text-sm">
+        <nav className="flex items-center gap-5 text-sm text-stone-900">
           <Link href="/library" className="hover:underline">
             Library
           </Link>
