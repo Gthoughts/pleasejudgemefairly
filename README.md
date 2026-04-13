@@ -133,8 +133,14 @@ Open <http://localhost:3000>.
      in the `Authorization` header on every scheduled run
    - `ADMIN_EMAIL` — comma-separated admin emails
 4. Deploy. Vercel will detect Next.js automatically and schedule the
-   cron job (`/api/cron/ratings` every 15 minutes) from
+   cron job (`/api/cron/ratings` once a day at midnight UTC) from
    [`vercel.json`](./vercel.json).
+
+> **Cron frequency — Vercel tier note:** The schedule is set to
+> `0 0 * * *` (daily) because Vercel's Hobby (free) tier only allows
+> daily cron jobs. If you upgrade to **Vercel Pro**, you can change the
+> schedule in `vercel.json` to `*/15 * * * *` to run every 15 minutes
+> and get near-real-time helpfulness score updates.
 
 ### Running the cron job manually (local testing)
 
