@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import PostItem from './PostItem'
 import RootReplyForm from './RootReplyForm'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
+import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
 type PostRow = {
   id: string
@@ -59,6 +60,7 @@ type CommonProps = {
   blockedByThreadAuthor: boolean
   // Phase 3: map from postId to this user's own rating (if any).
   myRatings: Map<string, 'helpful' | 'unhelpful'>
+  adminIds: Set<string>
 }
 
 function renderNode(node: PostNode, common: CommonProps) {
@@ -71,7 +73,7 @@ function renderNode(node: PostNode, common: CommonProps) {
         created_at: node.created_at,
         updated_at: node.updated_at,
         author_id: node.author_id,
-        author_username: node.users?.username ?? 'unknown',
+        author_username: getDisplayUsername(node.author_id, node.users?.username ?? 'unknown', common.adminIds),
         depth: node.depth,
         isCollapsed: node.is_collapsed,
         holdState: node.hold_state,
@@ -108,6 +110,7 @@ export default async function ThreadPage(
   if (!cat) notFound()
 
   const supabase = await createClient()
+  const adminIds = await getAdminUserIds()
 
   const { data: thread } = await supabase
     .from('threads')
@@ -190,6 +193,7 @@ export default async function ThreadPage(
     threadId,
     blockedByThreadAuthor,
     myRatings,
+    adminIds,
   }
 
   return (

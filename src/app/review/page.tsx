@@ -3,7 +3,7 @@ import DiscussHeader from '@/components/DiscussHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { formatWhen } from '@/lib/format'
-import { isAdminEmail } from '@/lib/admin'
+import { isAdminEmail, getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 import {
   releaseHeldPostAdminAction,
   releaseHeldResourceAdminAction,
@@ -27,6 +27,7 @@ export default async function ReviewPage() {
     data: { user },
   } = await supabase.auth.getUser()
   const userIsAdmin = isAdminEmail(user?.email)
+  const adminIds = await getAdminUserIds()
 
   // ------------------------------------------------------------------
   // Held posts
@@ -77,7 +78,7 @@ export default async function ReviewPage() {
   const { data: heldResources } = await supabase
     .from('resources')
     .select(
-      'id, title, url, description, created_at, hold_reasons, hold_expires_at, category, users:submitter_id(username)'
+      'id, title, url, description, created_at, hold_reasons, hold_expires_at, category, submitter_id, users:submitter_id(username)'
     )
     .eq('hold_state', 'held')
     .order('created_at', { ascending: false })
@@ -92,6 +93,7 @@ export default async function ReviewPage() {
         hold_reasons: string[] | null
         hold_expires_at: string | null
         category: string
+        submitter_id: string
         users: { username: string } | null
       }[]
     >()
@@ -104,7 +106,7 @@ export default async function ReviewPage() {
   const { data: brokenResources } = await supabase
     .from('resources')
     .select(
-      'id, title, url, category, broken_flag_count, users:submitter_id(username)'
+      'id, title, url, category, broken_flag_count, submitter_id, users:submitter_id(username)'
     )
     .gte('broken_flag_count', 3)
     .is('broken_confirmed', null)
@@ -117,6 +119,7 @@ export default async function ReviewPage() {
         url: string
         category: string
         broken_flag_count: number
+        submitter_id: string
         users: { username: string } | null
       }[]
     >()
@@ -158,7 +161,7 @@ export default async function ReviewPage() {
                   <li key={r.id} className="py-5">
                     <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-stone-500">
                       <span className="font-medium text-stone-700">
-                        {r.users?.username ?? 'unknown'}
+                        {getDisplayUsername(r.author_id, r.users?.username ?? 'unknown', adminIds)}
                       </span>
                       <span>·</span>
                       <time dateTime={r.created_at}>
@@ -245,7 +248,7 @@ export default async function ReviewPage() {
                   <li key={r.id} className="py-5">
                     <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-stone-500">
                       <span className="font-medium text-stone-700">
-                        {r.users?.username ?? 'unknown'}
+                        {getDisplayUsername(r.submitter_id, r.users?.username ?? 'unknown', adminIds)}
                       </span>
                       <span>·</span>
                       <time dateTime={r.created_at}>
@@ -345,7 +348,7 @@ export default async function ReviewPage() {
                         : 'users flagged this link as broken'}
                     </p>
                     <p className="mt-0.5 text-xs text-stone-500">
-                      submitted by {r.users?.username ?? 'unknown'}
+                      submitted by {getDisplayUsername(r.submitter_id, r.users?.username ?? 'unknown', adminIds)}
                     </p>
 
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">

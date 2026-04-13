@@ -4,6 +4,7 @@ import DiscussHeader from '@/components/DiscussHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { formatWhen } from '@/lib/format'
+import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
 export const metadata = {
   title: 'Inbox — pleasejudgemefairly',
@@ -61,6 +62,7 @@ export default async function InboxPage() {
     .eq('user_id', user.id)
   const mutedIds = new Set((mutes ?? []).map((m) => m.muted_user_id))
   const visible = replies.filter((r) => !mutedIds.has(r.author_id))
+  const adminIds = await getAdminUserIds()
 
   return (
     <>
@@ -83,7 +85,7 @@ export default async function InboxPage() {
                 <li key={r.id} className="py-4">
                   <p className="text-sm text-stone-500">
                     <span className="font-medium text-stone-800">
-                      {r.users?.username ?? 'unknown'}
+                      {getDisplayUsername(r.author_id, r.users?.username ?? 'unknown', adminIds)}
                     </span>{' '}
                     replied to you in{' '}
                     {r.thread ? (

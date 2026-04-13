@@ -5,6 +5,7 @@ import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { getLibraryCategory } from '@/lib/library-categories'
 import { formatWhen } from '@/lib/format'
+import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 import ResourceRatingButtons from './ResourceRatingButtons'
 import BrokenLinkButton from './BrokenLinkButton'
 
@@ -23,7 +24,7 @@ export default async function ResourcePage(
   const { data: resource } = await supabase
     .from('resources')
     .select(
-      'id, title, url, description, created_at, hold_state, hold_reasons, is_collapsed, broken_flag_count, broken_confirmed, users:submitter_id(username)'
+      'id, title, url, description, created_at, hold_state, hold_reasons, is_collapsed, broken_flag_count, broken_confirmed, submitter_id, users:submitter_id(username)'
     )
     .eq('id', resourceId)
     .eq('category', category)
@@ -38,12 +39,14 @@ export default async function ResourcePage(
       is_collapsed: boolean
       broken_flag_count: number
       broken_confirmed: boolean | null
+      submitter_id: string
       users: { username: string } | null
     }>()
 
   if (!resource) notFound()
 
   const redirectTo = `/library/${category}/${resourceId}`
+  const adminIds = await getAdminUserIds()
 
   // Fetch the current user's own rating (if any) and broken-link flag.
   let myRating: 'helpful' | 'unhelpful' | null = null
@@ -128,7 +131,7 @@ export default async function ResourcePage(
           <p className="mt-1 text-sm text-stone-500">
             submitted by{' '}
             <span className="font-medium text-stone-700">
-              {resource.users?.username ?? 'unknown'}
+              {getDisplayUsername(resource.submitter_id, resource.users?.username ?? 'unknown', adminIds)}
             </span>
             <span className="mx-1">·</span>
             <time dateTime={resource.created_at}>

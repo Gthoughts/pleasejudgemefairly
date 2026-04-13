@@ -5,6 +5,7 @@ import SiteFooter from '@/components/SiteFooter'
 import { getCategory } from '@/lib/categories'
 import { createClient } from '@/lib/supabase/server'
 import { formatWhen } from '@/lib/format'
+import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
 type ThreadRow = {
   id: string
@@ -27,6 +28,7 @@ export default async function CategoryPage(
   if (!cat) notFound()
 
   const supabase = await createClient()
+  const adminIds = await getAdminUserIds()
 
   const { data } = await supabase
     .from('threads')
@@ -106,7 +108,7 @@ export default async function CategoryPage(
                     {t.title}
                   </Link>
                   <p className="mt-1 text-sm text-stone-500">
-                    by {t.users?.username ?? 'unknown'} ·{' '}
+                    by {getDisplayUsername(t.author_id, t.users?.username ?? 'unknown', adminIds)} ·{' '}
                     {formatWhen(t.created_at)} · {replies}{' '}
                     {replies === 1 ? 'reply' : 'replies'}
                   </p>

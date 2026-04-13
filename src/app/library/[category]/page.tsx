@@ -5,6 +5,7 @@ import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { getLibraryCategory } from '@/lib/library-categories'
 import { formatWhen } from '@/lib/format'
+import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
 type ResourceRow = {
   id: string
@@ -17,6 +18,7 @@ type ResourceRow = {
   broken_flag_count: number
   broken_confirmed: boolean | null
   rating_count: number
+  submitter_id: string
   users: { username: string } | null
 }
 
@@ -44,7 +46,7 @@ export default async function LibraryCategoryPage(
   const { data } = await supabase
     .from('resources')
     .select(
-      'id, title, url, description, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, users:submitter_id(username)'
+      'id, title, url, description, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
     )
     .eq('category', category)
     .order(
@@ -55,6 +57,7 @@ export default async function LibraryCategoryPage(
     .returns<ResourceRow[]>()
 
   const resources = data ?? []
+  const adminIds = await getAdminUserIds()
 
   return (
     <>
@@ -160,7 +163,7 @@ export default async function LibraryCategoryPage(
                       {r.title}
                     </Link>
                     <p className="mt-1 text-xs text-stone-500">
-                      {r.users?.username ?? 'unknown'}
+                      {getDisplayUsername(r.submitter_id, r.users?.username ?? 'unknown', adminIds)}
                       <span className="mx-1">·</span>
                       <time dateTime={r.created_at}>
                         {formatWhen(r.created_at)}
