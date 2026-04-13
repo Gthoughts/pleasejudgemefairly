@@ -21,6 +21,12 @@ export default async function DiscussHeader() {
           <Link href="/discuss" className="hover:underline">
             Discussion
           </Link>
+          <Link href="/library" className="hover:underline">
+            Library
+          </Link>
+          <Link href="/about" className="hover:underline">
+            How This Works
+          </Link>
           <Link href="/review" className="hover:underline">
             Review queue
           </Link>

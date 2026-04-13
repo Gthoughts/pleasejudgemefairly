@@ -23,6 +23,9 @@ export default async function LibraryHeader() {
           <Link href="/discuss" className="hover:underline">
             Discussion
           </Link>
+          <Link href="/about" className="hover:underline">
+            How This Works
+          </Link>
           <Link href="/review" className="hover:underline">
             Review queue
           </Link>

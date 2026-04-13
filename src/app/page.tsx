@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import SiteHeader from '@/components/SiteHeader'
 import SiteFooter from '@/components/SiteFooter'
 
 // Homepage: one YouTube video (privacy-enhanced domain), a warm welcome
@@ -10,6 +11,7 @@ const HOMEPAGE_VIDEO_ID = 'GA8z7f7a2Pk'
 export default function HomePage() {
   return (
     <>
+      <SiteHeader />
       <main className="flex-1 flex flex-col items-center px-6 pt-16 pb-20">
         {/* Video */}
         <div className="w-full max-w-4xl">
