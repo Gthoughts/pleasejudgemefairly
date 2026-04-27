@@ -6,14 +6,17 @@ export const metadata = {
   title: 'Sign in — pleasejudgemefairly',
 }
 
-export default function SignInPage() {
+export default async function SignInPage(props: PageProps<'/signin'>) {
+  const search = await props.searchParams
+  const next = typeof search.next === 'string' ? search.next : '/'
+
   return (
     <>
       <main className="flex-1 px-6 py-16">
         <div className="mx-auto max-w-md">
           <h1 className="text-2xl font-semibold">Sign in</h1>
           <div className="mt-8">
-            <SignInForm />
+            <SignInForm next={next} />
           </div>
           <p className="mt-6 text-sm text-stone-600">
             New here?{' '}

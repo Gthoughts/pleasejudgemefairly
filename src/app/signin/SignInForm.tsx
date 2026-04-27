@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 
 // Email + password sign-in via Supabase Auth. Email must already be verified
 // — unverified accounts will be rejected by Supabase with a clear error.
-export default function SignInForm() {
+export default function SignInForm({ next = '/' }: { next?: string }) {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,7 +30,7 @@ export default function SignInForm() {
       return
     }
 
-    router.push('/')
+    router.push(next)
     router.refresh()
   }
 

@@ -42,6 +42,9 @@ export default async function LibraryCategoryPage(
   if (!cat) notFound()
 
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { data } = await supabase
     .from('resources')
@@ -72,12 +75,21 @@ export default async function LibraryCategoryPage(
 
           <div className="mt-1 flex items-start justify-between gap-4">
             <h1 className="text-2xl font-semibold">{cat.name}</h1>
-            <Link
-              href={`/library/${category}/new`}
-              className="rounded bg-stone-900 text-stone-50 px-4 py-2 text-sm hover:bg-stone-700 shrink-0"
-            >
-              Submit a resource
-            </Link>
+            {user ? (
+              <Link
+                href={`/library/${category}/new`}
+                className="rounded bg-stone-900 text-stone-50 px-4 py-2 text-sm hover:bg-stone-700 shrink-0"
+              >
+                Submit a resource
+              </Link>
+            ) : (
+              <Link
+                href={`/signin?next=/library/${category}/new`}
+                className="text-sm text-stone-500 hover:text-stone-900 hover:underline shrink-0"
+              >
+                Sign in to submit
+              </Link>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-4 text-sm">
@@ -108,7 +120,11 @@ export default async function LibraryCategoryPage(
             <p className="mt-10 text-sm text-stone-500">
               No resources yet.{' '}
               <Link
-                href={`/library/${category}/new`}
+                href={
+                  user
+                    ? `/library/${category}/new`
+                    : `/signin?next=/library/${category}/new`
+                }
                 className="underline hover:text-stone-800"
               >
                 Submit the first one.

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import DiscussHeader from '@/components/DiscussHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
@@ -26,6 +27,7 @@ export default async function ReviewPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  if (!user) redirect('/signin?next=/review')
   const userIsAdmin = isAdminEmail(user?.email)
   const adminIds = await getAdminUserIds()
 

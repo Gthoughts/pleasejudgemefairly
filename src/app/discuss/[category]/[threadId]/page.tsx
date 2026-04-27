@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import DiscussHeader from '@/components/DiscussHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { getCategory } from '@/lib/categories'
@@ -145,6 +145,7 @@ export default async function ThreadPage(
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  if (!user) redirect(`/signin?next=/discuss/${category}/${threadId}`)
 
   // Fetch the set of users I have muted so the renderer can collapse their
   // posts. Blocks aren't needed here because RLS enforces them on insert.
@@ -238,14 +239,6 @@ export default async function ThreadPage(
             </p>
           )}
 
-          {!user && (
-            <p className="mt-12 border-t border-stone-200 pt-6 text-sm text-stone-500">
-              <Link href="/signin" className="underline hover:text-stone-900">
-                Sign in
-              </Link>{' '}
-              to reply.
-            </p>
-          )}
         </div>
       </main>
       <SiteFooter />

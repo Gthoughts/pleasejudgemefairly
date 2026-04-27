@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import DiscussHeader from '@/components/DiscussHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { getCategory } from '@/lib/categories'
@@ -28,6 +28,11 @@ export default async function CategoryPage(
   if (!cat) notFound()
 
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect(`/signin?next=/discuss/${category}`)
+
   const adminIds = await getAdminUserIds()
 
   const { data } = await supabase
