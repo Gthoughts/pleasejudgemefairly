@@ -70,6 +70,9 @@ export default async function DiscussIndexPage() {
                   >
                     {row.name}
                   </Link>
+                  {row.subtitle && (
+                    <p className="mt-0.5 text-xs text-stone-400">{row.subtitle}</p>
+                  )}
                   <p className="mt-1 text-sm text-stone-500">
                     {row.count} {row.count === 1 ? 'thread' : 'threads'}
                     {row.latest ? (
