@@ -13,6 +13,9 @@ export default function SiteHeader() {
           <Link href="/library" className="hover:underline">
             Library
           </Link>
+          <Link href="/meetups" className="hover:underline">
+            Meetups
+          </Link>
           <Link href="/about" className="hover:underline">
             How This Works
           </Link>

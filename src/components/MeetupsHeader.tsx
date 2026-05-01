@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import SignOutButton from './SignOutButton'
 
-// Header for library pages. Same structure as DiscussHeader but
-// highlights Library in the nav.
-export default async function LibraryHeader() {
+// Header for meetup pages. Same structure as DiscussHeader/LibraryHeader
+// but highlights Meetups first in the nav.
+export default async function MeetupsHeader() {
   const supabase = await createClient()
   const {
     data: { user },
@@ -17,14 +17,14 @@ export default async function LibraryHeader() {
           pleasejudgemefairly
         </Link>
         <nav className="flex items-center gap-5 text-sm text-stone-900">
-          <Link href="/library" className="hover:underline">
-            Library
+          <Link href="/meetups" className="hover:underline">
+            Meetups
           </Link>
           <Link href="/discuss" className="hover:underline">
             Discussion
           </Link>
-          <Link href="/meetups" className="hover:underline">
-            Meetups
+          <Link href="/library" className="hover:underline">
+            Library
           </Link>
           <Link href="/about" className="hover:underline">
             How This Works
