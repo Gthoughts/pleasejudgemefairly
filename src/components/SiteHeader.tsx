@@ -5,25 +5,25 @@ import Link from 'next/link'
 export default function SiteHeader() {
   return (
     <header className="border-b border-stone-200 bg-stone-50">
-      <div className="mx-auto max-w-4xl px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="font-medium hover:text-stone-600">
+      <div className="mx-auto max-w-4xl px-6 py-4 flex items-center justify-between gap-4">
+        <Link href="/" className="font-medium hover:text-stone-600 shrink-0">
           pleasejudgemefairly
         </Link>
-        <nav className="flex items-center gap-5 text-sm text-stone-900">
-          <Link href="/library" className="hover:underline">
+        <nav className="flex items-center gap-4 text-sm text-stone-900">
+          <Link href="/library" className="hidden sm:block hover:underline">
             Library
           </Link>
-          <Link href="/meetups" className="hover:underline">
+          <Link href="/meetups" className="hidden sm:block hover:underline">
             Meetups
           </Link>
-          <Link href="/about" className="hover:underline">
+          <Link href="/about" className="hidden md:block hover:underline">
             How This Works
           </Link>
           <a
             href="https://github.com/Gthoughts/pleasejudgemefairly"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:underline"
+            className="hidden md:block hover:underline"
           >
             GitHub
           </a>

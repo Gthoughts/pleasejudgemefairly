@@ -35,7 +35,7 @@ export default function HomePage() {
         {/* Quiet link into the discussion. */}
         <Link
           href="/discuss"
-          className="mt-10 text-sm text-stone-500 hover:text-stone-800 hover:underline underline-offset-4"
+          className="mt-10 text-sm text-stone-600 hover:text-stone-900 hover:underline underline-offset-4"
         >
           join the conversation &rarr;
         </Link>
@@ -57,12 +57,12 @@ export default function HomePage() {
           </p>
           <details className="mt-2 text-center">
             <summary
-              className="list-none cursor-pointer text-sm text-stone-400 underline decoration-dotted decoration-stone-300 underline-offset-4 hover:text-stone-600 hover:decoration-stone-500 focus-visible:outline-none focus-visible:text-stone-700 [&::-webkit-details-marker]:hidden"
+              className="list-none cursor-pointer text-sm text-stone-500 underline decoration-dotted decoration-stone-400 underline-offset-4 hover:text-stone-700 hover:decoration-stone-600 focus-visible:outline-none focus-visible:text-stone-700 [&::-webkit-details-marker]:hidden"
               aria-label="Errol Graham, 1961 to 2018. Click to read about him."
             >
               &mdash; Errol Graham, 1961&ndash;2018
             </summary>
-            <p className="mx-auto mt-5 max-w-md px-4 text-xs leading-relaxed text-stone-500">
+            <p className="mx-auto mt-5 max-w-md px-4 text-sm leading-relaxed text-stone-600">
               Errol Graham died in 2018 after his benefits were stopped.
               He weighed four and a half stone when he was found. The
               phrase was in an unsent letter to the DWP.
