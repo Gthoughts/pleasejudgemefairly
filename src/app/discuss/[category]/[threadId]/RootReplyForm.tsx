@@ -35,7 +35,7 @@ export default function RootReplyForm({
         maxLength={20000}
         rows={4}
         placeholder="Write a reply"
-        className="rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+        className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
       />
       <div>
         <button

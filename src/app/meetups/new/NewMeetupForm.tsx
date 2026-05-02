@@ -148,7 +148,7 @@ export default function NewMeetupForm() {
               onChange={(e) => updateQuestion(idx, e.target.value)}
               maxLength={500}
               placeholder={`Question ${idx + 1}`}
-              className="flex-1 rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+              className="flex-1 rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
             />
             <button
               type="button"

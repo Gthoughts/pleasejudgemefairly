@@ -142,7 +142,7 @@ export default function PostItem({
             minLength={1}
             maxLength={20000}
             rows={6}
-            className="rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
           <div className="flex items-center gap-3">
             <button
@@ -332,7 +332,7 @@ export default function PostItem({
             maxLength={20000}
             rows={4}
             placeholder="Write a reply"
-            className="rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+            className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
           <div className="flex items-center gap-3">
             <button

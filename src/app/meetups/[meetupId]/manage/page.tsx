@@ -248,7 +248,7 @@ export default async function ManageMeetupPage(
                   required
                   rows={4}
                   placeholder="Announcement text…"
-                  className="rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
                 />
                 <div>
                   <button
@@ -339,14 +339,14 @@ export default async function ManageMeetupPage(
                   required
                   maxLength={500}
                   placeholder="Add a need…"
-                  className="flex-1 rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  className="flex-1 rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
                 />
                 <input
                   name="estimated_cost"
                   type="text"
                   maxLength={200}
                   placeholder="Est. cost"
-                  className="w-36 rounded border border-stone-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  className="w-36 rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
                 />
                 <button
                   type="submit"
