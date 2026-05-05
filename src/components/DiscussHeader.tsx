@@ -27,6 +27,9 @@ export default async function DiscussHeader() {
           <Link href="/meetups" className="hover:underline">
             Meetups
           </Link>
+          <Link href="/projects" className="hover:underline">
+            Projects
+          </Link>
           <Link href="/about" className="hover:underline">
             How This Works
           </Link>

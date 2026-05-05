@@ -20,6 +20,9 @@ export default async function MeetupsHeader() {
           <Link href="/meetups" className="hover:underline">
             Meetups
           </Link>
+          <Link href="/projects" className="hover:underline">
+            Projects
+          </Link>
           <Link href="/discuss" className="hover:underline">
             Discussion
           </Link>

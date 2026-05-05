@@ -16,6 +16,7 @@ export default function SiteHeader() {
         <nav className="hidden md:flex items-center gap-4 text-sm text-stone-900">
           <Link href="/library" className="hover:underline">Library</Link>
           <Link href="/meetups" className="hover:underline">Meetups</Link>
+          <Link href="/projects" className="hover:underline">Projects</Link>
           <Link href="/about" className="hover:underline">How This Works</Link>
           <a
             href="https://github.com/Gthoughts/pleasejudgemefairly"
@@ -42,6 +43,7 @@ export default function SiteHeader() {
             <nav className="absolute right-0 top-full mt-1 z-20 min-w-44 rounded border border-stone-200 bg-stone-50 shadow-md py-1 flex flex-col text-sm text-stone-900">
               <Link href="/library" className="px-4 py-2.5 hover:bg-stone-100">Library</Link>
               <Link href="/meetups" className="px-4 py-2.5 hover:bg-stone-100">Meetups</Link>
+              <Link href="/projects" className="px-4 py-2.5 hover:bg-stone-100">Projects</Link>
               <Link href="/about" className="px-4 py-2.5 hover:bg-stone-100">How This Works</Link>
               <a
                 href="https://github.com/Gthoughts/pleasejudgemefairly"
