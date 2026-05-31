@@ -12,7 +12,7 @@ the platform or its users gets permanently banned.
 
 ## Status
 
-This repo is through **Phase 3** of the build plan. In place:
+This repo is through **Phase 7** of the build plan. In place:
 
 - **Phase 1** — Next.js 16 foundation, Supabase Auth with email
   verification, homepage with a YouTube embed, database schema with
@@ -27,9 +27,25 @@ This repo is through **Phase 3** of the build plan. In place:
   and releases expired holds. See [`docs/RATING_SYSTEM.md`](./docs/RATING_SYSTEM.md)
   for the algorithm explainer, its limitations, and what it can and
   cannot be used for.
+- **Phase 4** — Library (`/library`), six categories, community-
+  submitted resources, the same held-for-review and cross-perspective
+  rating flow as posts, and broken-link flagging.
+- **Phase 5** — Meetups (`/meetups`), organiser flow with custom
+  intake questions, registrations + waitlist, a meetup "needs" list
+  (needed / offered / arranged), and a meetup-scoped threaded
+  discussion with organiser pinning.
+- **Phase 7** — Projects (`/projects`), large-scale community
+  projects with tiered registration of interest (no money moves
+  through the site), per-project vision and model pages, progress
+  updates with their own discussion threads, and a project-wide
+  discussion. Aggregate registration counts are exposed via
+  `SECURITY DEFINER` RPCs so individual registrations stay private.
+  Project creation is admin-only.
 
-The library is **not built yet** (Phase 4). See the build
-specification for what is coming next.
+There is no Phase 6 migration — the numbering jumps from 5 to 7. The
+[build specification](../pleasejudgemefairly_build_spec.md) was the
+original seed plan and is now historical; what is described above is
+what actually shipped.
 
 ### Admin role
 
@@ -104,6 +120,21 @@ Run the migrations in order in the Supabase SQL editor:
 3. [`supabase/phase3_migration.sql`](./supabase/phase3_migration.sql)
    — adds rating/hold columns to `posts`, the `collapse_log` audit
    table, and tightens the `ratings` read policy to "own only".
+4. [`supabase/phase4_migration.sql`](./supabase/phase4_migration.sql)
+   — mirrors the rating/hold columns onto `resources`, adds the
+   broken-link counter trigger and unique flag index, extends
+   `collapse_log` with `resource_id`, and seeds the book entry.
+5. [`supabase/phase5_migration.sql`](./supabase/phase5_migration.sql)
+   — creates `meetups`, `meetup_questions`, `meetup_registrations`,
+   `meetup_answers`, `meetup_needs`, and `meetup_posts` with full
+   RLS.
+6. [`supabase/phase7_migration.sql`](./supabase/phase7_migration.sql)
+   — creates `projects`, `project_tiers`, `project_registrations`,
+   `project_updates`, and `project_posts`, plus the
+   `project_registration_count` and `project_tier_breakdown` RPCs.
+   Widens the `ratings` and `flags` `content_type` check constraints
+   to include `meetup_post` and `project_post`. (Phase numbering
+   skips 6.)
 
 ### 4. Turn on email verification
 
@@ -182,12 +213,52 @@ pleasejudgemefairly/
 │   │   │           ├── PostItem.tsx
 │   │   │           ├── RatingButtons.tsx
 │   │   │           └── RootReplyForm.tsx
+│   │   ├── library/                      # /library — submitted resources
+│   │   │   ├── actions.ts
+│   │   │   ├── page.tsx
+│   │   │   └── [category]/
+│   │   │       ├── page.tsx
+│   │   │       ├── new/page.tsx
+│   │   │       └── [resourceId]/
+│   │   │           ├── page.tsx
+│   │   │           ├── ResourceRatingButtons.tsx
+│   │   │           └── BrokenLinkButton.tsx
+│   │   ├── meetups/                      # /meetups
+│   │   │   ├── actions.ts
+│   │   │   ├── page.tsx
+│   │   │   ├── new/                      # Organise a meetup
+│   │   │   └── [meetupId]/
+│   │   │       ├── page.tsx
+│   │   │       ├── MeetupPostItem.tsx
+│   │   │       ├── MeetupRatingButtons.tsx
+│   │   │       ├── MeetupRootReplyForm.tsx
+│   │   │       ├── RegistrationSection.tsx
+│   │   │       └── manage/
+│   │   │           ├── page.tsx
+│   │   │           └── export/            # Attendee CSV export
+│   │   ├── projects/                     # /projects (admin-created)
+│   │   │   ├── actions.ts
+│   │   │   ├── page.tsx
+│   │   │   ├── new/
+│   │   │   └── [projectId]/
+│   │   │       ├── page.tsx
+│   │   │       ├── ProjectPostItem.tsx
+│   │   │       ├── ProjectRatingButtons.tsx
+│   │   │       ├── ProjectRootReplyForm.tsx
+│   │   │       ├── RegisterInterestSection.tsx
+│   │   │       └── manage/
+│   │   │           ├── page.tsx
+│   │   │           └── export/            # Registration export
 │   │   ├── inbox/                        # /inbox
 │   │   ├── review/                       # /review (held-post queue)
 │   │   └── api/cron/ratings/             # Scheduled job endpoint
 │   ├── components/
+│   │   ├── SiteHeader.tsx                # Homepage header
 │   │   ├── SiteFooter.tsx
 │   │   ├── DiscussHeader.tsx
+│   │   ├── LibraryHeader.tsx
+│   │   ├── MeetupsHeader.tsx
+│   │   ├── ProjectsHeader.tsx
 │   │   └── SignOutButton.tsx
 │   ├── lib/
 │   │   ├── supabase/
@@ -203,14 +274,21 @@ pleasejudgemefairly/
 │   │   │   ├── config.ts
 │   │   │   └── filter.ts                 # Content filter
 │   │   ├── admin.ts
-│   │   ├── categories.ts
+│   │   ├── categories.ts                 # Discussion categories
+│   │   ├── library-categories.ts         # Library categories
+│   │   ├── projects.ts                   # Project enums + GBP formatter
 │   │   ├── discuss.ts
-│   │   └── format.ts
+│   │   ├── format.ts
+│   │   └── markdown.tsx                  # Markdown renderer (Projects)
 │   └── proxy.ts                          # Next.js 16 proxy
 ├── supabase/
 │   ├── schema.sql                        # Phase 1 schema
 │   ├── phase2_migration.sql
-│   └── phase3_migration.sql
+│   ├── phase3_migration.sql
+│   ├── phase4_migration.sql              # Library
+│   ├── phase5_migration.sql              # Meetups
+│   ├── phase7_migration.sql              # Projects (no phase 6)
+│   └── cleanup_test_data.sql             # Manual housekeeping
 ├── scripts/
 │   └── test-brigading.ts                 # Algorithm verification
 ├── docs/
