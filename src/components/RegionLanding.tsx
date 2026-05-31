@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import SubscribeForm from './SubscribeForm'
 import SiteFooter from './SiteFooter'
 
@@ -40,33 +41,56 @@ export default function RegionLanding({
   return (
     <div className="paper-grain w-full">
       <div className="mx-auto max-w-[760px] px-8">
-        {/* ============== masthead ============== */}
-        <header className="pt-16">
-          <div className="reveal d1 text-[12px] tracking-[0.32em] uppercase text-clay font-semibold">
-            A community commitment
-          </div>
-          <h1 className="reveal d2 mt-3.5 font-serif font-medium text-[clamp(2.9rem,9vw,5.1rem)] leading-none tracking-[-0.015em]">
-            The{copy.h1Region}{' '}
-            <span className="italic font-normal text-ink-soft">Accord</span>
-          </h1>
-          <svg
-            className="reveal d3 block w-full h-10 mt-[30px] overflow-visible"
-            viewBox="0 0 700 40"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <path
-              className="river-path"
-              d="M0,20 C70,4 130,36 200,20 C270,4 330,36 400,20 C470,4 530,36 600,20 C650,11 680,16 700,20"
-            />
-          </svg>
-          <div className="reveal d4 mt-[22px] text-[13px] tracking-[0.16em] text-moss font-semibold">
-            TheAccord.cc
-            {copy.urlSuffix && (
+        {/* ============== masthead ==============
+            With no region the logo carries the title and the URL — the
+            wordmark already reads "The Accord.cc" inside the artwork.
+            With a region passed in (future regional pages) we fall back
+            to a typographic H1 + animated river + URL line, so per-
+            region wording still works without needing a logo per region.
+        */}
+        {region ? (
+          <header className="pt-16">
+            <div className="reveal d1 text-[12px] tracking-[0.32em] uppercase text-clay font-semibold">
+              A community commitment
+            </div>
+            <h1 className="reveal d2 mt-3.5 font-serif font-medium text-[clamp(2.9rem,9vw,5.1rem)] leading-none tracking-[-0.015em]">
+              The{copy.h1Region}{' '}
+              <span className="italic font-normal text-ink-soft">Accord</span>
+            </h1>
+            <svg
+              className="reveal d3 block w-full h-10 mt-[30px] overflow-visible"
+              viewBox="0 0 700 40"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path
+                className="river-path"
+                d="M0,20 C70,4 130,36 200,20 C270,4 330,36 400,20 C470,4 530,36 600,20 C650,11 680,16 700,20"
+              />
+            </svg>
+            <div className="reveal d4 mt-[22px] text-[13px] tracking-[0.16em] text-moss font-semibold">
+              TheAccord.cc
               <span className="text-ink-soft">{copy.urlSuffix}</span>
-            )}
-          </div>
-        </header>
+            </div>
+          </header>
+        ) : (
+          <header className="pt-12 text-center">
+            <div className="reveal d1 text-[12px] tracking-[0.32em] uppercase text-clay font-semibold">
+              A community commitment
+            </div>
+            <div className="reveal d2 mt-2">
+              <Image
+                src="/the-accord-logo.png"
+                alt="The Accord — a community commitment"
+                width={2000}
+                height={2000}
+                priority
+                sizes="(max-width: 640px) 88vw, 480px"
+                className="mx-auto w-[min(88vw,480px)] h-auto"
+              />
+            </div>
+          </header>
+        )}
 
         {/* ============== OPENING STATEMENT ============== */}
         <section className="py-14 pb-2">
