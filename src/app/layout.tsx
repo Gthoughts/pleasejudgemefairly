@@ -20,7 +20,7 @@ const publicSans = Public_Sans({
 export const metadata: Metadata = {
   title: 'The Accord',
   description:
-    'A community charter platform. The people of each county write their own Accord and vote it through, word by word. A duty we share, not a power we surrender.',
+    'A community commitment, written and voted through by the people, word by word. A duty we share, not a power we surrender.',
 }
 
 export default function RootLayout({

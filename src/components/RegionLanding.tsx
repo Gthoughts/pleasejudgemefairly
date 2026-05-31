@@ -1,27 +1,53 @@
 import SubscribeForm from './SubscribeForm'
 import SiteFooter from './SiteFooter'
 
-// Server component. The whole regional landing page lives here, so that
-// when other counties get their own page in a later phase, they can
-// reuse the layout by passing a different `region` value.
+// Server component. The Accord's landing page. The `region` prop is
+// optional: with no region the page reads as the generic "The Accord"
+// (TheAccord.cc); with a region passed in, it reads as e.g. "The
+// Merseyside Accord" (TheAccord.cc/Merseyside). The component is
+// shaped this way so a future regional page can reuse it without a
+// rewrite.
 //
-// The only client-rendered part is the email form (SubscribeForm), which
-// uses a server action to write to public.subscribers.
+// The only client-rendered part is the email form (SubscribeForm),
+// which uses a server action to write to public.subscribers.
 export default function RegionLanding({
   region,
 }: {
-  region: string
+  region?: string
 }) {
+  // All the per-region copy lives here so the JSX below stays clean.
+  // When region is undefined, sentences fall back to generic wording.
+  const copy = region
+    ? {
+        h1Region: ` ${region}`,
+        urlSuffix: `/${region}`,
+        openingSubject: `The people of ${region}`,
+        techHereClause: <>, in {region}, </>,
+        communityFutureSubject: `The community of ${region}`,
+        beyondKicker: `Beyond ${region}`,
+        beyondLeadIn: `This does not belong to ${region} alone.`,
+      }
+    : {
+        h1Region: '',
+        urlSuffix: '',
+        openingSubject: 'The people',
+        techHereClause: <> </>,
+        communityFutureSubject: 'The community',
+        beyondKicker: 'Wherever you are',
+        beyondLeadIn: 'This does not belong to one place alone.',
+      }
+
   return (
     <div className="paper-grain w-full">
       <div className="mx-auto max-w-[760px] px-8">
         {/* ============== masthead ============== */}
         <header className="pt-16">
           <div className="reveal d1 text-[12px] tracking-[0.32em] uppercase text-clay font-semibold">
-            A community charter
+            A community commitment
           </div>
           <h1 className="reveal d2 mt-3.5 font-serif font-medium text-[clamp(2.9rem,9vw,5.1rem)] leading-none tracking-[-0.015em]">
-            The {region} <span className="italic font-normal text-ink-soft">Accord</span>
+            The{copy.h1Region}{' '}
+            <span className="italic font-normal text-ink-soft">Accord</span>
           </h1>
           <svg
             className="reveal d3 block w-full h-10 mt-[30px] overflow-visible"
@@ -35,7 +61,10 @@ export default function RegionLanding({
             />
           </svg>
           <div className="reveal d4 mt-[22px] text-[13px] tracking-[0.16em] text-moss font-semibold">
-            TheAccord.cc<span className="text-ink-soft">/{region}</span>
+            TheAccord.cc
+            {copy.urlSuffix && (
+              <span className="text-ink-soft">{copy.urlSuffix}</span>
+            )}
           </div>
         </header>
 
@@ -46,7 +75,7 @@ export default function RegionLanding({
           </div>
 
           <p className="font-serif font-medium text-[clamp(1.5rem,4vw,2.05rem)] leading-[1.22] tracking-[-0.01em] text-ink mb-[26px]">
-            The people of {region} will no longer stand for being divided.
+            {copy.openingSubject} will no longer stand for being divided.
           </p>
 
           <p className="text-ink-soft mb-4 text-[16.5px] leading-[1.7]">
@@ -98,8 +127,8 @@ export default function RegionLanding({
             the quickest to adapt survive. AI is a tool, and we will use it
             as a tool should be used: to lift the whole community, not to
             enrich a few while the rest are cast aside. Technology that can
-            do extraordinary things for people will, in {region}, be made
-            to do them.
+            do extraordinary things for people will{copy.techHereClause}be
+            made to do them.
           </p>
 
           <p className="text-ink-soft mb-4 text-[16.5px] leading-[1.7]">
@@ -153,7 +182,7 @@ export default function RegionLanding({
           </p>
 
           <p className="text-ink font-semibold mb-4 text-[16.5px] leading-[1.7]">
-            The community of {region} will decide its own future and its
+            {copy.communityFutureSubject} will decide its own future and its
             own direction.
           </p>
           <p className="text-ink font-semibold mb-4 text-[16.5px] leading-[1.7]">
@@ -176,7 +205,7 @@ export default function RegionLanding({
           <div className="reveal d4 mt-[30px] border-l-2 border-clay py-1 pl-[22px] text-ink-soft text-[16.5px]">
             Every word of the Manifesto will be put to a vote, decided by{' '}
             <strong className="text-ink font-semibold">
-              each individual in the county
+              each individual in the community
             </strong>
             . Nothing is imposed from above. We decide together what goes
             in, and what does not.
@@ -210,8 +239,8 @@ export default function RegionLanding({
           <p className="text-ink-soft leading-[1.7]">
             And if you can do nothing else today, simply share this page.
             Pass it to a neighbour, a friend, a relative. Every person who
-            hears of the Accord is one more step toward a county that looks
-            after its own. It all helps.
+            hears of the Accord is one more step toward a community that
+            looks after its own. It all helps.
           </p>
 
           <div className="bg-paper-deep border border-line p-[38px_34px] mt-8">
@@ -222,30 +251,30 @@ export default function RegionLanding({
               Leave your email and we’ll let you know how to take part, and
               when the Manifesto opens for its first vote.
             </p>
-            <SubscribeForm region={region} />
+            <SubscribeForm region={region ?? null} />
           </div>
         </section>
 
         <hr className="h-px bg-line border-0" />
 
-        {/* ============== OTHER COUNTIES ============== */}
+        {/* ============== OTHER COUNTIES / wherever you are ============== */}
         <section className="py-14">
           <div className="text-[12px] tracking-[0.28em] uppercase text-moss font-semibold mb-4">
-            Beyond {region}
+            {copy.beyondKicker}
           </div>
           <h2 className="font-serif font-medium text-[clamp(1.9rem,5vw,2.6rem)] leading-[1.12] tracking-[-0.01em] mb-[18px]">
             People first. Hierarchy last.
           </h2>
           <p className="text-ink-soft mb-3.5 leading-[1.7]">
-            This does not belong to {region} alone. We will work alongside{' '}
+            {copy.beyondLeadIn} We will work alongside{' '}
             <strong className="text-ink font-semibold">
-              any county or community
+              any community
             </strong>{' '}
             that chooses to put its people first and its hierarchy last.
           </p>
           <p className="text-ink-soft leading-[1.7]">
             If you want to begin organising where you live, tell us. Use the
-            sign-up above and say which county you’re in. We will help you
+            sign-up above and tell us where you’re from. We will help you
             start, and we will share what we learn as we go.
           </p>
         </section>
