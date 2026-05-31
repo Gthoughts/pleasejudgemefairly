@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------
+ * The Accord — design tokens.
+ * Warm paper palette with moss (community / growth) and clay
+ * (sharp accent) highlights. Used by the homepage and the new
+ * branded header/footer. The legacy stone-* palette is still in
+ * use across /discuss, /library, /meetups, /projects — those will
+ * be aligned in a later phase.
+ * --------------------------------------------------------------- */
+@theme {
+  --color-paper: #fbfbf9;
+  --color-paper-deep: #f1f2ee;
+  --color-ink: #1a1f1c;
+  --color-ink-soft: #565d57;
+  --color-line: #dcded6;
+  --color-moss: #2f5d4f;
+  --color-clay: #bc5f33;
+
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-public-sans);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-public-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------
+ * Paper grain overlay. A fixed full-screen SVG noise pattern at
+ * very low opacity. Pointer-events disabled so it never
+ * intercepts clicks. Only applied where the .paper-grain class
+ * sits on a top-level wrapper (the homepage), so the rest of the
+ * site is unaffected for now.
+ * --------------------------------------------------------------- */
+.paper-grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------
+ * Reveal-on-load animation. Items fade up from 18px below their
+ * resting position. Stagger via .d1 / .d2 / .d3 / .d4 classes.
+ * --------------------------------------------------------------- */
+@keyframes accord-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: accord-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+.reveal.d1 { animation-delay: 0.05s; }
+.reveal.d2 { animation-delay: 0.20s; }
+.reveal.d3 { animation-delay: 0.35s; }
+.reveal.d4 { animation-delay: 0.50s; }
+
+/* The animated SVG "river" line under the H1 draws itself in. */
+@keyframes accord-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.river-path {
+  fill: none;
+  stroke: var(--color-moss);
+  stroke-width: 1.4;
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: accord-draw 2.6s ease 0.4s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .river-path {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+  }
 }
