@@ -2,12 +2,6 @@ import SiteHeader from '@/components/SiteHeader'
 import SiteFooter from '@/components/SiteFooter'
 import Link from 'next/link'
 
-// Sasquatch Music Festival 2009 "first follower" clip. Kept from the
-// original pleasejudgemefairly homepage — the video and the dedication
-// it sits with matter, and they have a home here until a more permanent
-// place is decided in a later phase.
-const FIRST_FOLLOWER_VIDEO_ID = 'GA8z7f7a2Pk'
-
 export const metadata = {
   title: 'About — The Accord',
 }
@@ -185,52 +179,6 @@ export default function AboutPage() {
               <p>
                 Welcome. I&rsquo;m glad you&rsquo;re here.
               </p>
-            </div>
-          </section>
-
-          <section className="mt-16" aria-label="Where this began">
-            <h2 className="text-xl font-semibold text-stone-900">
-              Where this began
-            </h2>
-            <div className="mt-4 space-y-4 text-stone-700 text-base leading-relaxed">
-              <p>
-                Movements don&rsquo;t start with the first person.
-                They start with the first follower. Someone has to be brave
-                enough to stand next to the lone dancer and treat them like
-                a leader. That&rsquo;s the moment a movement begins.
-              </p>
-            </div>
-
-            <div className="mt-6 w-full">
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm ring-1 ring-stone-200 bg-black">
-                <iframe
-                  className="absolute inset-0 h-full w-full"
-                  src={`https://www.youtube-nocookie.com/embed/${FIRST_FOLLOWER_VIDEO_ID}?rel=0&modestbranding=1`}
-                  title="First follower — Sasquatch Music Festival 2009"
-                  loading="lazy"
-                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-
-            <div className="mt-10 flex flex-col items-center text-center">
-              <p className="text-sm italic text-stone-500">
-                &ldquo;please judge me fairly&rdquo;
-              </p>
-              <details className="mt-2">
-                <summary
-                  className="list-none cursor-pointer text-sm text-stone-500 underline decoration-dotted decoration-stone-400 underline-offset-4 hover:text-stone-700 hover:decoration-stone-600 focus-visible:outline-none focus-visible:text-stone-700 [&::-webkit-details-marker]:hidden"
-                  aria-label="Errol Graham, 1961 to 2018. Click to read about him."
-                >
-                  &mdash; Errol Graham, 1961&ndash;2018
-                </summary>
-                <p className="mx-auto mt-5 max-w-md px-4 text-sm leading-relaxed text-stone-600">
-                  Errol Graham died in 2018 after his benefits were stopped.
-                  He weighed four and a half stone when he was found. The
-                  phrase was in an unsent letter to the DWP.
-                </p>
-              </details>
             </div>
           </section>
 

@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import SubscribeForm from './SubscribeForm'
 import SiteFooter from './SiteFooter'
 
@@ -41,6 +42,17 @@ export default function RegionLanding({
   return (
     <div className="paper-grain w-full">
       <div className="mx-auto max-w-[760px] px-8">
+        {/* Small, quiet way back to the main site — this page is one
+            part of a larger picture, not the whole site. */}
+        <div className="pt-5">
+          <Link
+            href="/"
+            className="text-[12px] tracking-[0.04em] text-ink-soft hover:text-ink underline underline-offset-4 decoration-dotted"
+          >
+            &larr; back to the main site
+          </Link>
+        </div>
+
         {/* ============== masthead ==============
             With no region the logo carries the title and the URL — the
             wordmark already reads "The Accord.cc" inside the artwork.
@@ -301,6 +313,18 @@ export default function RegionLanding({
             sign-up above and tell us where you’re from. We will help you
             start, and we will share what we learn as we go.
           </p>
+        </section>
+
+        <hr className="h-px bg-line border-0" />
+
+        {/* Second, more explicit way back to the main site. */}
+        <section className="py-10 text-center">
+          <Link
+            href="/"
+            className="text-[13px] text-ink-soft hover:text-ink underline underline-offset-4"
+          >
+            Return to the main site
+          </Link>
         </section>
       </div>
 
