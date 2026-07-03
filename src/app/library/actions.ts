@@ -174,19 +174,28 @@ export async function submitResourceAction(formData: FormData) {
     description
   )
 
+  // Only include pdf_path in the payload when we actually have one so
+  // that submissions still work if the phase9 migration hasn't been
+  // applied yet (the column and the nullable url both come from there).
+  const insertPayload: Record<string, unknown> = {
+    category,
+    title,
+    description,
+    submitter_id: user.id,
+    hold_state: hold.hold_state,
+    hold_reasons: hold.hold_reasons,
+    hold_expires_at: hold.hold_expires_at,
+  }
+  if (pdfPathToInsert) {
+    insertPayload.pdf_path = pdfPathToInsert
+    if (url) insertPayload.url = url
+  } else {
+    insertPayload.url = url
+  }
+
   const { data: inserted, error } = await supabase
     .from('resources')
-    .insert({
-      category,
-      url: url || null,
-      pdf_path: pdfPathToInsert,
-      title,
-      description,
-      submitter_id: user.id,
-      hold_state: hold.hold_state,
-      hold_reasons: hold.hold_reasons,
-      hold_expires_at: hold.hold_expires_at,
-    })
+    .insert(insertPayload)
     .select('id')
     .single()
   if (error) throw new Error(error.message)
