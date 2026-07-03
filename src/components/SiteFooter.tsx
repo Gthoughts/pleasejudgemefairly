@@ -3,7 +3,7 @@ import Link from 'next/link'
 // Site-wide footer. Off the /accord routes the footer is deliberately
 // nameless — the site is one part of a larger picture and doesn't want
 // to carry a fixed brand. On /accord routes (RegionLanding), the Accord
-// wordmark, tagline and URL are shown by passing showAccordMark.
+// wordmark and tagline are shown by passing showAccordMark.
 export default function SiteFooter({
   region,
   showAccordMark = false,
@@ -20,9 +20,6 @@ export default function SiteFooter({
           </div>
           <div className="text-[12.5px] text-ink-soft mt-2 tracking-[0.04em]">
             A DUTY WE SHARE · NOT A POWER WE SURRENDER
-          </div>
-          <div className="text-[12.5px] text-ink-soft mt-2 tracking-[0.04em]">
-            TheAccord.cc{region ? `/${region}` : ''}
           </div>
         </>
       )}

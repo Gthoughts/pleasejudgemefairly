@@ -80,10 +80,6 @@ export default function RegionLanding({
                 d="M0,20 C70,4 130,36 200,20 C270,4 330,36 400,20 C470,4 530,36 600,20 C650,11 680,16 700,20"
               />
             </svg>
-            <div className="reveal d4 mt-[22px] text-[13px] tracking-[0.16em] text-moss font-semibold">
-              TheAccord.cc
-              <span className="text-ink-soft">{copy.urlSuffix}</span>
-            </div>
           </header>
         ) : (
           <header className="pt-12 text-center">
