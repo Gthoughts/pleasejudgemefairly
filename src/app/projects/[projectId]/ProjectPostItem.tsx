@@ -156,7 +156,7 @@ export default function ProjectPostItem({
           </div>
         </form>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap text-stone-800">
+        <div className="mt-2 whitespace-pre-wrap break-words text-stone-800">
           {post.content}
         </div>
       )}

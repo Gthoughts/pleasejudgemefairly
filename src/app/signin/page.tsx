@@ -12,7 +12,7 @@ export default async function SignInPage(props: PageProps<'/signin'>) {
 
   return (
     <>
-      <main className="flex-1 px-6 py-16">
+      <main className="flex-1 px-4 sm:px-6 py-10 sm:py-16">
         <div className="mx-auto max-w-md">
           <h1 className="text-2xl font-semibold">Sign in</h1>
           <div className="mt-8">

@@ -247,7 +247,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
   return (
     <>
       <MeetupsHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl space-y-14">
 
           {/* ---- Section 1: Details ---- */}
@@ -292,7 +292,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
               <dd className="text-stone-800">{organiserUsername}</dd>
             </dl>
 
-            <p className="mt-5 text-sm text-stone-700 whitespace-pre-wrap">{meetup.description}</p>
+            <p className="mt-5 text-sm text-stone-700 whitespace-pre-wrap break-words">{meetup.description}</p>
 
             <div className="mt-8">
               <RegistrationSection

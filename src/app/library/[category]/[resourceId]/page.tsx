@@ -24,14 +24,15 @@ export default async function ResourcePage(
   const { data: resource } = await supabase
     .from('resources')
     .select(
-      'id, title, url, description, created_at, hold_state, hold_reasons, is_collapsed, broken_flag_count, broken_confirmed, submitter_id, users:submitter_id(username)'
+      'id, title, url, pdf_path, description, created_at, hold_state, hold_reasons, is_collapsed, broken_flag_count, broken_confirmed, submitter_id, users:submitter_id(username)'
     )
     .eq('id', resourceId)
     .eq('category', category)
     .maybeSingle<{
       id: string
       title: string
-      url: string
+      url: string | null
+      pdf_path: string | null
       description: string
       created_at: string
       hold_state: string
@@ -81,7 +82,7 @@ export default async function ResourcePage(
   return (
     <>
       <LibraryHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
           <p className="text-sm text-stone-500">
             <Link
@@ -139,16 +140,30 @@ export default async function ResourcePage(
             </time>
           </p>
 
-          <a
-            href={resource.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-block rounded border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:border-stone-500 hover:text-stone-900 break-all"
-          >
-            {resource.url}
-          </a>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            {resource.pdf_path && (
+              <a
+                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/library-pdfs/${resource.pdf_path}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded border border-stone-700 bg-stone-900 px-4 py-2 text-sm text-stone-50 hover:bg-stone-700"
+              >
+                <span aria-hidden>↓</span> Download PDF
+              </a>
+            )}
+            {resource.url && (
+              <a
+                href={resource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 hover:border-stone-500 hover:text-stone-900 break-all"
+              >
+                {resource.url}
+              </a>
+            )}
+          </div>
 
-          <p className="mt-4 whitespace-pre-wrap text-sm text-stone-800">
+          <p className="mt-4 whitespace-pre-wrap break-words text-sm text-stone-800">
             {resource.description}
           </p>
 

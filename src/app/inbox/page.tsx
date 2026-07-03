@@ -67,7 +67,7 @@ export default async function InboxPage() {
   return (
     <>
       <DiscussHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-2xl font-semibold">Inbox</h1>
           <p className="mt-2 text-sm text-stone-600">
@@ -100,7 +100,7 @@ export default async function InboxPage() {
                     )}{' '}
                     · {formatWhen(r.created_at)}
                   </p>
-                  <p className="mt-2 whitespace-pre-wrap text-stone-800 text-sm">
+                  <p className="mt-2 whitespace-pre-wrap break-words text-stone-800 text-sm">
                     {r.content.length > 400
                       ? r.content.slice(0, 400) + '…'
                       : r.content}

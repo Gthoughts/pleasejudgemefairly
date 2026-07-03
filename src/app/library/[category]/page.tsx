@@ -10,7 +10,8 @@ import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 type ResourceRow = {
   id: string
   title: string
-  url: string
+  url: string | null
+  pdf_path: string | null
   description: string
   created_at: string
   hold_state: string
@@ -49,7 +50,7 @@ export default async function LibraryCategoryPage(
   const { data } = await supabase
     .from('resources')
     .select(
-      'id, title, url, description, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
+      'id, title, url, pdf_path, description, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
     )
     .eq('category', category)
     .order(
@@ -65,7 +66,7 @@ export default async function LibraryCategoryPage(
   return (
     <>
       <LibraryHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
           <p className="text-sm text-stone-500">
             <Link href="/library" className="underline hover:text-stone-900">
@@ -178,6 +179,11 @@ export default async function LibraryCategoryPage(
                     >
                       {r.title}
                     </Link>
+                    {r.pdf_path && (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 align-middle text-xs text-stone-600">
+                        <span aria-hidden>↓</span> PDF
+                      </span>
+                    )}
                     <p className="mt-1 text-xs text-stone-500">
                       {getDisplayUsername(r.submitter_id, r.users?.username ?? 'unknown', adminIds)}
                       <span className="mx-1">·</span>

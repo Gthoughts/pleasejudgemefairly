@@ -88,7 +88,7 @@ export default async function MeetupsPage() {
   return (
     <>
       <MeetupsHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold">Meetups</h1>

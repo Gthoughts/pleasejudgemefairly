@@ -92,7 +92,7 @@ function renderNode(node: PostNode, common: CommonProps) {
       maxDepth={MAX_REPLY_DEPTH}
     >
       {node.children.length > 0 && (
-        <ul className="mt-4 space-y-4 border-l border-stone-200 pl-4">
+        <ul className="mt-4 space-y-4 border-l border-stone-200 pl-2 sm:pl-4">
           {node.children.map((child) => (
             <li key={child.id}>{renderNode(child, common)}</li>
           ))}
@@ -200,7 +200,7 @@ export default async function ThreadPage(
   return (
     <>
       <DiscussHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
           <p className="text-sm text-stone-500">
             <Link

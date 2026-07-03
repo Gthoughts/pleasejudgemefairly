@@ -157,7 +157,7 @@ export default function MeetupPostItem({
           </div>
         </form>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap text-stone-800">{post.content}</div>
+        <div className="mt-2 whitespace-pre-wrap break-words text-stone-800">{post.content}</div>
       )}
 
       {mode !== 'editing' && (

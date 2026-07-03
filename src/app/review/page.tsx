@@ -131,7 +131,7 @@ export default async function ReviewPage() {
   return (
     <>
       <DiscussHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl space-y-14">
           {/* ----------------------------------------------------------------
               Section 1: Held posts
@@ -193,7 +193,7 @@ export default async function ReviewPage() {
                       </p>
                     )}
 
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-stone-800">
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-stone-800">
                       {r.content.length > 500
                         ? r.content.slice(0, 500) + '…'
                         : r.content}

@@ -328,7 +328,7 @@ export default function RegionLanding({
         </section>
       </div>
 
-      <SiteFooter region={region} />
+      <SiteFooter region={region} showAccordMark />
     </div>
   )
 }

@@ -2,7 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { isAdminEmail } from '@/lib/admin'
 import { getLibraryCategory } from '@/lib/library-categories'
 import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
@@ -12,6 +15,8 @@ import { RATING_CONFIG } from '@/lib/rating/config'
 const MAX_TITLE = 300
 // Spec limit: description capped at 500 chars in the UI (DB allows 2000).
 const MAX_DESCRIPTION = 500
+// Storage bucket name for hosted PDFs. Provisioned in phase9_migration.sql.
+const PDF_BUCKET = 'library-pdfs'
 
 function requireString(value: FormDataEntryValue | null, field: string): string {
   if (typeof value !== 'string') throw new Error(`Missing ${field}`)
@@ -111,10 +116,21 @@ async function recordAutoFlagsForResource(
 // --------------------------------------------------------------------------
 // Submit a new resource
 // --------------------------------------------------------------------------
+//
+// URL and pdf_path are each individually optional but at least one must
+// be present (enforced both here and by the DB check constraint
+// resources_link_or_pdf_check added in phase9_migration.sql). pdf_path
+// is populated by the browser after a successful direct upload to
+// Supabase Storage via getPdfUploadTargetAction below — the server
+// action only receives the storage key, never the file bytes, so the
+// Vercel Hobby 4.5 MB request body limit doesn't apply.
 
 export async function submitResourceAction(formData: FormData) {
   const category = requireString(formData.get('category'), 'category').trim()
-  const url = requireString(formData.get('url'), 'url').trim()
+  const rawUrl = (formData.get('url') as string | null) ?? ''
+  const url = rawUrl.trim()
+  const rawPdfPath = (formData.get('pdf_path') as string | null) ?? ''
+  const pdfPath = rawPdfPath.trim()
   const title = requireString(formData.get('title'), 'title').trim()
   const description = requireString(
     formData.get('description'),
@@ -122,7 +138,8 @@ export async function submitResourceAction(formData: FormData) {
   ).trim()
 
   if (!getLibraryCategory(category)) throw new Error('Unknown category.')
-  if (!url.startsWith('http://') && !url.startsWith('https://'))
+  if (!url && !pdfPath) throw new Error('Provide a URL or upload a PDF.')
+  if (url && !url.startsWith('http://') && !url.startsWith('https://'))
     throw new Error('URL must start with http:// or https://')
   if (title.length < 1 || title.length > MAX_TITLE)
     throw new Error(`Title must be 1–${MAX_TITLE} characters.`)
@@ -131,13 +148,38 @@ export async function submitResourceAction(formData: FormData) {
 
   const { supabase, user } = await requireUser()
 
-  const hold = await computeResourceHold(supabase, user.id, url, title, description)
+  // A pdf_path may only be supplied by an admin (matches the gating in
+  // getPdfUploadTargetAction). Silently drop otherwise so a crafted
+  // form POST can't attach an arbitrary storage key.
+  const pdfPathToInsert =
+    pdfPath && isAdminEmail(user.email) ? pdfPath : null
+
+  if (pdfPathToInsert) {
+    // Verify the file actually exists in the bucket. Prevents a partial
+    // upload from becoming a broken resource.
+    const service = createServiceClient()
+    const { data: probe, error: probeErr } = await service.storage
+      .from(PDF_BUCKET)
+      .list('', { search: pdfPathToInsert })
+    if (probeErr) throw new Error(probeErr.message)
+    if (!probe || probe.length === 0)
+      throw new Error('PDF upload not found in storage.')
+  }
+
+  const hold = await computeResourceHold(
+    supabase,
+    user.id,
+    url || '',
+    title,
+    description
+  )
 
   const { data: inserted, error } = await supabase
     .from('resources')
     .insert({
       category,
-      url,
+      url: url || null,
+      pdf_path: pdfPathToInsert,
       title,
       description,
       submitter_id: user.id,
@@ -155,6 +197,32 @@ export async function submitResourceAction(formData: FormData) {
 
   revalidatePath(`/library/${category}`)
   redirect(`/library/${category}/${inserted.id}`)
+}
+
+// --------------------------------------------------------------------------
+// Signed upload target for library PDFs (admin-only)
+// --------------------------------------------------------------------------
+//
+// Returns a storage path and a signed upload URL that the browser can
+// PUT the PDF to directly. The URL is short-lived and single-use. The
+// admin check is here (server-side), not in a storage RLS policy, so
+// keys don't need to be baked into SQL when the admin list changes.
+
+export async function getPdfUploadTargetAction(): Promise<{
+  path: string
+  token: string
+}> {
+  const { user } = await requireUser()
+  if (!isAdminEmail(user.email))
+    throw new Error('Only admins can upload PDFs at the moment.')
+
+  const service = createServiceClient()
+  const path = `${randomUUID()}.pdf`
+  const { data, error } = await service.storage
+    .from(PDF_BUCKET)
+    .createSignedUploadUrl(path)
+  if (error) throw new Error(error.message)
+  return { path, token: data.token }
 }
 
 // --------------------------------------------------------------------------

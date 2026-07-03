@@ -104,7 +104,7 @@ export default function PostItem({
   }
 
   return (
-    <article className="rounded border border-stone-200 bg-white px-4 py-3">
+    <article className="rounded border border-stone-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3">
       {isHeld && (
         <div
           role="note"
@@ -162,7 +162,7 @@ export default function PostItem({
           </div>
         </form>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap text-stone-800">
+        <div className="mt-2 whitespace-pre-wrap break-words text-stone-800">
           {post.content}
         </div>
       )}

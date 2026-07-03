@@ -10,7 +10,7 @@ export default function AboutPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 px-6 py-16">
+      <main className="flex-1 px-4 sm:px-6 py-10 sm:py-16">
         <article className="mx-auto max-w-2xl">
 
           <h1 className="text-3xl font-semibold text-stone-900">

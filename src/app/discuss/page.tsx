@@ -41,7 +41,7 @@ export default async function DiscussIndexPage() {
   return (
     <>
       <DiscussHeader />
-      <main className="flex-1 px-6 py-12">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-2xl font-semibold">Discussion</h1>
           <p className="mt-2 text-sm text-stone-600">
