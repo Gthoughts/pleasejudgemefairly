@@ -5,6 +5,7 @@ import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { formatWhen } from '@/lib/format'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
+import { markInboxSeen } from '@/lib/inbox'
 
 export const metadata = {
   title: 'Inbox — pleasejudgemefairly',
@@ -63,6 +64,11 @@ export default async function InboxPage() {
   const mutedIds = new Set((mutes ?? []).map((m) => m.muted_user_id))
   const visible = replies.filter((r) => !mutedIds.has(r.author_id))
   const adminIds = await getAdminUserIds()
+
+  // Now that the user has looked at their inbox, clear the badge.
+  // Fire-and-forget: if the phase10 migration hasn't run yet, this
+  // silently no-ops and the badge just stays visible until it does.
+  await markInboxSeen(supabase, user.id)
 
   return (
     <>

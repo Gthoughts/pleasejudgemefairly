@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getInboxUnreadCount } from '@/lib/inbox'
 import SignOutButton from './SignOutButton'
 
 // Shared top header for the section pages (/discuss, /library, /meetups,
@@ -28,6 +29,21 @@ const ALL_NAV: NavItem[] = [
   { key: 'review', href: '/review', label: 'Review queue' },
 ]
 
+// A pill next to the Inbox link when there are unread replies.
+// Deliberately quiet — stone-800 on stone-200 so it registers as a
+// count, not an alarm.
+function InboxBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span
+      aria-label={`${count} unread ${count === 1 ? 'reply' : 'replies'}`}
+      className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-stone-800 px-1.5 py-0.5 text-[11px] font-medium leading-none text-stone-50"
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 export default async function SectionHeader({
   current,
 }: {
@@ -37,6 +53,11 @@ export default async function SectionHeader({
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // Only fetch the unread count if the user is signed in. Silently
+  // returns 0 if the phase10 migration hasn't been applied yet, so
+  // the header still renders during a rolling deploy.
+  const unread = user ? await getInboxUnreadCount(supabase) : 0
 
   // Put the current section first so it reads as the active one.
   const items = [
@@ -71,8 +92,12 @@ export default async function SectionHeader({
           ))}
           {user ? (
             <>
-              <Link href="/inbox" className="hover:underline">
+              <Link
+                href="/inbox"
+                className="inline-flex items-center hover:underline"
+              >
                 Inbox
+                <InboxBadge count={unread} />
               </Link>
               <SignOutButton />
             </>
@@ -91,8 +116,9 @@ export default async function SectionHeader({
         {/* Mobile dropdown — no JS, keyboard accessible */}
         <div className="relative md:hidden">
           <details className="group">
-            <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer rounded border border-stone-300 px-3 py-1.5 text-sm text-stone-900 hover:bg-stone-100 select-none min-h-[44px] flex items-center">
-              Menu
+            <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer rounded border border-stone-300 px-3 py-1.5 text-sm text-stone-900 hover:bg-stone-100 select-none min-h-[44px] flex items-center gap-2">
+              <span>Menu</span>
+              <InboxBadge count={unread} />
             </summary>
             <nav
               aria-label="Section menu"
@@ -117,6 +143,7 @@ export default async function SectionHeader({
                     className="px-4 py-3 hover:bg-stone-100 min-h-[44px] flex items-center"
                   >
                     Inbox
+                    <InboxBadge count={unread} />
                   </Link>
                   <div className="px-4 py-3">
                     <SignOutButton />
