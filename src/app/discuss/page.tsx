@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatWhen } from '@/lib/format'
 
 export const metadata = {
-  title: 'Discussion — pleasejudgemefairly',
+  title: 'Discussion — a place for you',
 }
 
 // /discuss - the four categories with a thread count and the most recent

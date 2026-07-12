@@ -72,7 +72,7 @@ export default async function SectionHeader({
           href="/"
           className="font-medium text-stone-900 hover:text-stone-600 shrink-0"
         >
-          pleasejudgemefairly
+          a place for you
         </Link>
 
         {/* Desktop nav */}

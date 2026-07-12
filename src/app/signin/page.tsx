@@ -3,7 +3,7 @@ import SignInForm from './SignInForm'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Sign in — pleasejudgemefairly',
+  title: 'Sign in — a place for you',
 }
 
 export default async function SignInPage(props: PageProps<'/signin'>) {

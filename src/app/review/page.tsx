@@ -12,7 +12,7 @@ import {
 } from './actions'
 
 export const metadata = {
-  title: 'Review queue — pleasejudgemefairly',
+  title: 'Review queue — a place for you',
 }
 
 // The review queue shows:

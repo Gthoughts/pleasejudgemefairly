@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import NewMeetupForm from './NewMeetupForm'
 
 export const metadata = {
-  title: 'Organise a meetup — pleasejudgemefairly',
+  title: 'Organise a meetup — a place for you',
 }
 
 export default async function NewMeetupPage() {

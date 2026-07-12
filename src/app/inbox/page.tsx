@@ -8,7 +8,7 @@ import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 import { markInboxSeen } from '@/lib/inbox'
 
 export const metadata = {
-  title: 'Inbox — pleasejudgemefairly',
+  title: 'Inbox — a place for you',
 }
 
 type ReplyRow = {

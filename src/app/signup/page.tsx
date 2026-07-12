@@ -3,7 +3,7 @@ import SignUpForm from './SignUpForm'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Sign up — pleasejudgemefairly',
+  title: 'Sign up — a place for you',
 }
 
 export default function SignUpPage() {

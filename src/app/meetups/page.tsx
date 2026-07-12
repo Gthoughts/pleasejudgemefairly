@@ -5,7 +5,7 @@ import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata = {
-  title: 'Meetups — pleasejudgemefairly',
+  title: 'Meetups — a place for you',
 }
 
 function formatMeetupDate(iso: string): string {

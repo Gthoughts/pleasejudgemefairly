@@ -3,7 +3,7 @@ import ForgotPasswordForm from './ForgotPasswordForm'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Forgot password — pleasejudgemefairly',
+  title: 'Forgot password — a place for you',
 }
 
 export default function ForgotPasswordPage() {

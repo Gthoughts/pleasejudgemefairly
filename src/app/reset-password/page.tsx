@@ -2,7 +2,7 @@ import SiteFooter from '@/components/SiteFooter'
 import ResetPasswordForm from './ResetPasswordForm'
 
 export const metadata = {
-  title: 'Reset password — pleasejudgemefairly',
+  title: 'Reset password — a place for you',
 }
 
 export default function ResetPasswordPage() {

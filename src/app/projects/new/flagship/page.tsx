@@ -7,7 +7,7 @@ import { isAdminEmail } from '@/lib/admin'
 import NewProjectForm from './NewProjectForm'
 
 export const metadata = {
-  title: 'New flagship project — pleasejudgemefairly',
+  title: 'New flagship project — a place for you',
 }
 
 export default async function NewFlagshipProjectPage() {

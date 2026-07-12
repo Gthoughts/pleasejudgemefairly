@@ -29,7 +29,7 @@ export async function generateMetadata(
   const { category } = await props.params
   const cat = getLibraryCategory(category)
   if (!cat) return {}
-  return { title: `${cat.name} — Library — pleasejudgemefairly` }
+  return { title: `${cat.name} — Library — a place for you` }
 }
 
 export default async function LibraryCategoryPage(

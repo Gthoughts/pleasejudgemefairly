@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { LIBRARY_CATEGORIES } from '@/lib/library-categories'
 
 export const metadata = {
-  title: 'Library — pleasejudgemefairly',
+  title: 'Library — a place for you',
 }
 
 // Library index. Shows the six categories with a resource count each.
