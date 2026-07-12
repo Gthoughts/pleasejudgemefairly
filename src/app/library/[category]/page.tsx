@@ -3,7 +3,12 @@ import { notFound } from 'next/navigation'
 import LibraryHeader from '@/components/LibraryHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
-import { getLibraryCategory } from '@/lib/library-categories'
+import {
+  getLibraryCategory,
+  platformLabel,
+  SOCIAL_MEDIA_PLATFORMS,
+  SOCIAL_MEDIA_VIDEOS_SLUG,
+} from '@/lib/library-categories'
 import { formatWhen } from '@/lib/format'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
@@ -13,6 +18,7 @@ type ResourceRow = {
   url: string | null
   pdf_path: string | null
   description: string
+  platform: string | null
   created_at: string
   hold_state: string
   is_collapsed: boolean
@@ -50,7 +56,7 @@ export default async function LibraryCategoryPage(
   const { data } = await supabase
     .from('resources')
     .select(
-      'id, title, url, pdf_path, description, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
+      'id, title, url, pdf_path, description, platform, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
     )
     .eq('category', category)
     .order(
@@ -62,6 +68,17 @@ export default async function LibraryCategoryPage(
 
   const resources = data ?? []
   const adminIds = await getAdminUserIds()
+
+  const isSocialVideos = category === SOCIAL_MEDIA_VIDEOS_SLUG
+  const groupedByPlatform = new Map<string, ResourceRow[]>()
+  if (isSocialVideos) {
+    for (const r of resources) {
+      const key = r.platform ?? 'other'
+      const list = groupedByPlatform.get(key) ?? []
+      list.push(r)
+      groupedByPlatform.set(key, list)
+    }
+  }
 
   return (
     <>
@@ -131,77 +148,107 @@ export default async function LibraryCategoryPage(
                 Submit the first one.
               </Link>
             </p>
-          ) : (
-            <ul className="mt-6 divide-y divide-stone-200 border-y border-stone-200">
-              {resources.map((r) => {
-                if (r.is_collapsed) {
-                  return (
-                    <li key={r.id} className="py-5">
-                      <div className="rounded border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500">
-                        resource collapsed by community &middot;{' '}
-                        <Link
-                          href={`/library/${category}/${r.id}`}
-                          className="underline hover:text-stone-800"
-                        >
-                          view anyway
-                        </Link>
-                      </div>
-                    </li>
-                  )
-                }
-
-                const maybeBroken =
-                  r.broken_confirmed === true ||
-                  (r.broken_flag_count >= 3 && r.broken_confirmed !== false)
-
+          ) : isSocialVideos ? (
+            <div className="mt-6 flex flex-col gap-8">
+              {SOCIAL_MEDIA_PLATFORMS.map((p) => {
+                const list = groupedByPlatform.get(p.value) ?? []
+                if (list.length === 0) return null
                 return (
-                  <li key={r.id} className="py-5">
-                    {r.hold_state === 'held' && (
-                      <div
-                        role="note"
-                        className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"
-                      >
-                        <span className="font-medium">Held for review.</span>{' '}
-                        This resource matched the automatic filter and is
-                        pending community review.
-                      </div>
-                    )}
-                    {maybeBroken && (
-                      <div className="mb-2 rounded border border-orange-300 bg-orange-50 px-3 py-2 text-xs text-orange-900">
-                        {r.broken_confirmed === true
-                          ? 'Link confirmed broken by admin.'
-                          : 'This link may be broken — flagged by multiple users.'}
-                      </div>
-                    )}
-                    <Link
-                      href={`/library/${category}/${r.id}`}
-                      className="font-medium text-stone-800 hover:underline"
-                    >
-                      {r.title}
-                    </Link>
-                    {r.pdf_path && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 align-middle text-xs text-stone-600">
-                        <span aria-hidden>↓</span> PDF
+                  <div key={p.value}>
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+                      {platformLabel(p.value)}
+                      <span className="ml-2 text-xs text-stone-400">
+                        ({list.length})
                       </span>
-                    )}
-                    <p className="mt-1 text-xs text-stone-500">
-                      {getDisplayUsername(r.submitter_id, r.users?.username ?? 'unknown', adminIds)}
-                      <span className="mx-1">·</span>
-                      <time dateTime={r.created_at}>
-                        {formatWhen(r.created_at)}
-                      </time>
-                    </p>
-                    <p className="mt-1 text-sm text-stone-600 line-clamp-2">
-                      {r.description}
-                    </p>
-                  </li>
+                    </h2>
+                    <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
+                      {list.map((r) =>
+                        renderResourceRow(r, category, adminIds)
+                      )}
+                    </ul>
+                  </div>
                 )
               })}
+            </div>
+          ) : (
+            <ul className="mt-6 divide-y divide-stone-200 border-y border-stone-200">
+              {resources.map((r) => renderResourceRow(r, category, adminIds))}
             </ul>
           )}
         </div>
       </main>
       <SiteFooter />
     </>
+  )
+}
+
+function renderResourceRow(
+  r: ResourceRow,
+  category: string,
+  adminIds: Set<string>
+) {
+  if (r.is_collapsed) {
+    return (
+      <li key={r.id} className="py-5">
+        <div className="rounded border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-500">
+          resource collapsed by community &middot;{' '}
+          <Link
+            href={`/library/${category}/${r.id}`}
+            className="underline hover:text-stone-800"
+          >
+            view anyway
+          </Link>
+        </div>
+      </li>
+    )
+  }
+
+  const maybeBroken =
+    r.broken_confirmed === true ||
+    (r.broken_flag_count >= 3 && r.broken_confirmed !== false)
+
+  return (
+    <li key={r.id} className="py-5">
+      {r.hold_state === 'held' && (
+        <div
+          role="note"
+          className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+        >
+          <span className="font-medium">Held for review.</span>{' '}
+          This resource matched the automatic filter and is
+          pending community review.
+        </div>
+      )}
+      {maybeBroken && (
+        <div className="mb-2 rounded border border-orange-300 bg-orange-50 px-3 py-2 text-xs text-orange-900">
+          {r.broken_confirmed === true
+            ? 'Link confirmed broken by admin.'
+            : 'This link may be broken — flagged by multiple users.'}
+        </div>
+      )}
+      <Link
+        href={`/library/${category}/${r.id}`}
+        className="font-medium text-stone-800 hover:underline"
+      >
+        {r.title}
+      </Link>
+      {r.pdf_path && (
+        <span className="ml-2 inline-flex items-center gap-1 rounded bg-stone-100 px-1.5 py-0.5 align-middle text-xs text-stone-600">
+          <span aria-hidden>↓</span> PDF
+        </span>
+      )}
+      <p className="mt-1 text-xs text-stone-500">
+        {getDisplayUsername(
+          r.submitter_id,
+          r.users?.username ?? 'unknown',
+          adminIds
+        )}
+        <span className="mx-1">·</span>
+        <time dateTime={r.created_at}>{formatWhen(r.created_at)}</time>
+      </p>
+      <p className="mt-1 text-sm text-stone-600 line-clamp-2">
+        {r.description}
+      </p>
+    </li>
   )
 }

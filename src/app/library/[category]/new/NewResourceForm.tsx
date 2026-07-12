@@ -4,6 +4,10 @@ import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { submitResourceAction, getPdfUploadTargetAction } from '../../actions'
+import {
+  SOCIAL_MEDIA_PLATFORMS,
+  SOCIAL_MEDIA_VIDEOS_SLUG,
+} from '@/lib/library-categories'
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024
 
@@ -25,6 +29,7 @@ export default function NewResourceForm({
   const [error, setError] = useState<string | null>(null)
 
   const hasPdf = pdfFile !== null
+  const isSocialVideos = category === SOCIAL_MEDIA_VIDEOS_SLUG
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -74,10 +79,31 @@ export default function NewResourceForm({
     <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-5">
       <input type="hidden" name="category" value={category} />
 
+      {isSocialVideos && (
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-stone-700">Platform</span>
+          <select
+            name="platform"
+            required
+            defaultValue=""
+            className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+          >
+            <option value="" disabled>
+              Choose one…
+            </option>
+            {SOCIAL_MEDIA_PLATFORMS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-stone-700">
-          Link (URL)
-          {isAdmin && (
+          {isSocialVideos ? 'Link to the video' : 'Link (URL)'}
+          {isAdmin && !isSocialVideos && (
             <span className="ml-1 font-normal text-stone-500">
               {hasPdf ? '(optional — PDF provided)' : ''}
             </span>
@@ -86,7 +112,7 @@ export default function NewResourceForm({
         <input
           name="url"
           type="url"
-          required={!hasPdf}
+          required={isSocialVideos || !hasPdf}
           placeholder="https://"
           className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
         />

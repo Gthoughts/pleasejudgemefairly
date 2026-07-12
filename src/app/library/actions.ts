@@ -6,7 +6,11 @@ import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isAdminEmail } from '@/lib/admin'
-import { getLibraryCategory } from '@/lib/library-categories'
+import {
+  getLibraryCategory,
+  isValidPlatform,
+  SOCIAL_MEDIA_VIDEOS_SLUG,
+} from '@/lib/library-categories'
 import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
@@ -146,6 +150,16 @@ export async function submitResourceAction(formData: FormData) {
   if (description.length < 1 || description.length > MAX_DESCRIPTION)
     throw new Error(`Description must be 1–${MAX_DESCRIPTION} characters.`)
 
+  // Platform is required only for social-media-videos, ignored elsewhere.
+  let platform: string | null = null
+  if (category === SOCIAL_MEDIA_VIDEOS_SLUG) {
+    const rawPlatform = (formData.get('platform') as string | null)?.trim() ?? ''
+    if (!isValidPlatform(rawPlatform))
+      throw new Error('Please pick which platform this video is on.')
+    if (!url) throw new Error('Provide a link to the video.')
+    platform = rawPlatform
+  }
+
   const { supabase, user } = await requireUser()
 
   // A pdf_path may only be supplied by an admin (matches the gating in
@@ -191,6 +205,9 @@ export async function submitResourceAction(formData: FormData) {
     if (url) insertPayload.url = url
   } else {
     insertPayload.url = url
+  }
+  if (platform) {
+    insertPayload.platform = platform
   }
 
   const { data: inserted, error } = await supabase
