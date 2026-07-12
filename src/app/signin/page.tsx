@@ -19,6 +19,14 @@ export default async function SignInPage(props: PageProps<'/signin'>) {
             <SignInForm next={next} />
           </div>
           <p className="mt-6 text-sm text-stone-600">
+            <Link
+              href="/forgot-password"
+              className="underline underline-offset-4 hover:text-stone-900"
+            >
+              Forgot your password?
+            </Link>
+          </p>
+          <p className="mt-2 text-sm text-stone-600">
             New here?{' '}
             <Link
               href="/signup"
