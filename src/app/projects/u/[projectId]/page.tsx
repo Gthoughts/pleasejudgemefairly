@@ -4,6 +4,7 @@ import ProjectsHeader from '@/components/ProjectsHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { categoryLabel } from '@/lib/user-projects/categories'
+import { coerceStoredLinks } from '@/lib/user-projects/links'
 import EditUserProjectForm from './EditUserProjectForm'
 
 export const metadata = {
@@ -17,6 +18,7 @@ type UserProjectRow = {
   short_description: string
   description: string
   category: string
+  links: unknown
   created_at: string
   updated_at: string
 }
@@ -35,7 +37,7 @@ export default async function UserProjectPage(
   const { data: project } = await supabase
     .from('user_projects')
     .select(
-      'id, creator_id, title, short_description, description, category, created_at, updated_at'
+      'id, creator_id, title, short_description, description, category, links, created_at, updated_at'
     )
     .eq('id', projectId)
     .maybeSingle<UserProjectRow>()
@@ -43,6 +45,7 @@ export default async function UserProjectPage(
   if (!project) notFound()
 
   const isCreator = project.creator_id === user.id
+  const links = coerceStoredLinks(project.links)
 
   const { data: creatorRow } = await supabase
     .from('users')
@@ -81,6 +84,28 @@ export default async function UserProjectPage(
             {project.description}
           </div>
 
+          {links.length > 0 && (
+            <section className="mt-10">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+                Links
+              </h2>
+              <ul className="mt-3 flex flex-col gap-2">
+                {links.map((l, i) => (
+                  <li key={i}>
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="text-stone-800 underline underline-offset-4 hover:text-stone-900"
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {isCreator ? (
             <div className="mt-12 border-t border-stone-200 pt-8">
               <h2 className="text-lg font-semibold text-stone-900">
@@ -93,6 +118,7 @@ export default async function UserProjectPage(
                   initialShortDescription={project.short_description}
                   initialDescription={project.description}
                   initialCategory={project.category}
+                  initialLinks={links}
                 />
               </div>
             </div>

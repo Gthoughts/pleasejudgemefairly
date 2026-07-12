@@ -6,6 +6,8 @@ import {
   deleteUserProjectAction,
 } from '../../actions'
 import { USER_PROJECT_CATEGORIES } from '@/lib/user-projects/categories'
+import type { ProjectLink } from '@/lib/user-projects/links'
+import ProjectLinksEditor from '../../ProjectLinksEditor'
 
 type Props = {
   projectId: string
@@ -13,6 +15,7 @@ type Props = {
   initialShortDescription: string
   initialDescription: string
   initialCategory: string
+  initialLinks: ProjectLink[]
 }
 
 export default function EditUserProjectForm({
@@ -21,6 +24,7 @@ export default function EditUserProjectForm({
   initialShortDescription,
   initialDescription,
   initialCategory,
+  initialLinks,
 }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,6 +128,8 @@ export default function EditUserProjectForm({
             className="mt-1 w-full rounded border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-stone-500 focus:outline-none"
           />
         </div>
+
+        <ProjectLinksEditor initial={initialLinks} />
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
         {saved ? (

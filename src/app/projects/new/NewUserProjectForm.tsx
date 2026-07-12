@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createUserProjectAction } from '../actions'
 import { USER_PROJECT_CATEGORIES } from '@/lib/user-projects/categories'
+import ProjectLinksEditor from '../ProjectLinksEditor'
 
 export default function NewUserProjectForm() {
   const [submitting, setSubmitting] = useState(false)
@@ -106,6 +107,8 @@ export default function NewUserProjectForm() {
           className="mt-1 w-full rounded border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-stone-500 focus:outline-none"
         />
       </div>
+
+      <ProjectLinksEditor />
 
       {error ? (
         <p className="text-sm text-red-700">{error}</p>

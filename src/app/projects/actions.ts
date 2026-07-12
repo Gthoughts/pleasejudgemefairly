@@ -9,6 +9,7 @@ import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { isValidCategory } from '@/lib/user-projects/categories'
+import { parseLinksFromFormData } from '@/lib/user-projects/links'
 
 const MAX_CONTENT = 20000
 const MAX_VISION = 200000
@@ -638,6 +639,8 @@ export async function createUserProjectAction(formData: FormData) {
   if (!isValidCategory(category))
     throw new Error('Please choose a category.')
 
+  const links = parseLinksFromFormData(formData)
+
   const { data: project, error } = await supabase
     .from('user_projects')
     .insert({
@@ -646,6 +649,7 @@ export async function createUserProjectAction(formData: FormData) {
       short_description: shortDescription,
       description,
       category,
+      links,
     })
     .select('id')
     .single()
@@ -685,6 +689,8 @@ export async function editUserProjectAction(formData: FormData) {
   if (!isValidCategory(category))
     throw new Error('Please choose a category.')
 
+  const links = parseLinksFromFormData(formData)
+
   const { error } = await supabase
     .from('user_projects')
     .update({
@@ -692,6 +698,7 @@ export async function editUserProjectAction(formData: FormData) {
       short_description: shortDescription,
       description,
       category,
+      links,
       updated_at: new Date().toISOString(),
     })
     .eq('id', projectId)
