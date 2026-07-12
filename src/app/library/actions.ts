@@ -297,6 +297,59 @@ export async function rateResourceAction(formData: FormData) {
 }
 
 // --------------------------------------------------------------------------
+// Delete a resource
+// --------------------------------------------------------------------------
+
+// Submitters and admins can delete a resource. RLS covers the
+// submitter case at the DB level; the admin case is done via the
+// service client so admins can clean up duplicates and spam without
+// being the original submitter.
+export async function deleteResourceAction(formData: FormData) {
+  const resourceId = requireString(formData.get('resource_id'), 'resource_id')
+  const category = requireString(formData.get('category'), 'category')
+
+  const { supabase, user } = await requireUser()
+
+  const { data: resource } = await supabase
+    .from('resources')
+    .select('submitter_id, pdf_path')
+    .eq('id', resourceId)
+    .maybeSingle<{ submitter_id: string; pdf_path: string | null }>()
+  if (!resource) throw new Error('Resource not found.')
+
+  const isSubmitter = resource.submitter_id === user.id
+  const isAdmin = isAdminEmail(user.email)
+  if (!isSubmitter && !isAdmin) {
+    throw new Error('Only the submitter or an admin can delete this.')
+  }
+
+  if (isAdmin && !isSubmitter) {
+    const service = createServiceClient()
+    if (resource.pdf_path) {
+      await service.storage.from(PDF_BUCKET).remove([resource.pdf_path])
+    }
+    const { error } = await service
+      .from('resources')
+      .delete()
+      .eq('id', resourceId)
+    if (error) throw new Error(error.message)
+  } else {
+    if (resource.pdf_path) {
+      const service = createServiceClient()
+      await service.storage.from(PDF_BUCKET).remove([resource.pdf_path])
+    }
+    const { error } = await supabase
+      .from('resources')
+      .delete()
+      .eq('id', resourceId)
+    if (error) throw new Error(error.message)
+  }
+
+  revalidatePath(`/library/${category}`)
+  redirect(`/library/${category}`)
+}
+
+// --------------------------------------------------------------------------
 // Broken-link flag
 // --------------------------------------------------------------------------
 

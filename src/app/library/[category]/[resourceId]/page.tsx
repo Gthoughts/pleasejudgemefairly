@@ -5,9 +5,10 @@ import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { getLibraryCategory } from '@/lib/library-categories'
 import { formatWhen } from '@/lib/format'
-import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
+import { getAdminUserIds, getDisplayUsername, isAdminEmail } from '@/lib/admin'
 import ResourceRatingButtons from './ResourceRatingButtons'
 import BrokenLinkButton from './BrokenLinkButton'
+import DeleteResourceButton from './DeleteResourceButton'
 
 export default async function ResourcePage(
   props: PageProps<'/library/[category]/[resourceId]'>
@@ -78,6 +79,10 @@ export default async function ResourcePage(
   const maybeBroken =
     resource.broken_confirmed === true ||
     (resource.broken_flag_count >= 3 && resource.broken_confirmed !== false)
+
+  const canDelete =
+    user !== null &&
+    (resource.submitter_id === user.id || isAdminEmail(user.email))
 
   return (
     <>
@@ -193,6 +198,15 @@ export default async function ResourcePage(
               </p>
             )}
           </div>
+
+          {canDelete && (
+            <div className="mt-8 border-t border-stone-200 pt-4">
+              <DeleteResourceButton
+                resourceId={resource.id}
+                category={category}
+              />
+            </div>
+          )}
         </div>
       </main>
       <SiteFooter />
