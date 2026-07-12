@@ -9,7 +9,7 @@ export const USER_PROJECT_CATEGORIES = [
   { value: 'environment', label: 'Environment' },
   { value: 'health', label: 'Health & Wellbeing' },
   { value: 'justice', label: 'Justice' },
-  { value: 'business', label: 'Business & Enterprise' },
+  { value: 'tech_for_good', label: 'Tech for Good' },
   { value: 'other', label: 'Other' },
 ] as const
 
