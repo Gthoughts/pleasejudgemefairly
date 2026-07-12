@@ -1,12 +1,10 @@
--- Phase 15: rename the "business" user-project category to "tech_for_good".
+-- Phase 15: add "tech_for_good" alongside the existing user-project
+-- categories. Business & Enterprise stays as it is.
 --
--- Any user_projects rows still tagged as 'business' are migrated over
--- to 'tech_for_good' before the check constraint is swapped so the
--- constraint change never fails on existing data.
-
-update public.user_projects
-  set category = 'tech_for_good'
-  where category = 'business';
+-- Safe to run even if an earlier (destructive) draft of this file was
+-- applied: the check constraint is dropped and re-added with the full
+-- category list either way. It does not touch any existing rows, so
+-- projects tagged 'business' or 'tech_for_good' both keep their tag.
 
 alter table public.user_projects
   drop constraint if exists user_projects_category_check;
@@ -21,6 +19,7 @@ alter table public.user_projects
     'environment',
     'health',
     'justice',
+    'business',
     'tech_for_good',
     'other'
   ));
