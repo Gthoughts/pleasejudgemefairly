@@ -13,6 +13,7 @@ type ThreadRow = {
   created_at: string
   updated_at: string
   author_id: string
+  is_private: boolean
   users: { username: string } | null
   posts: { count: number }[]
 }
@@ -38,7 +39,7 @@ export default async function CategoryPage(
   const { data } = await supabase
     .from('threads')
     .select(
-      'id, title, created_at, updated_at, author_id, users:author_id(username), posts(count)'
+      'id, title, created_at, updated_at, author_id, is_private, users:author_id(username), posts(count)'
     )
     .eq('category', category)
     .returns<ThreadRow[]>()
@@ -112,6 +113,14 @@ export default async function CategoryPage(
                   >
                     {t.title}
                   </Link>
+                  {t.is_private && (
+                    <span
+                      className="ml-2 text-sm text-stone-500"
+                      title="Private conversation — only visible to its participants"
+                    >
+                      🔒 private
+                    </span>
+                  )}
                   <p className="mt-1 text-sm text-stone-500">
                     by {getDisplayUsername(t.author_id, t.users?.username ?? 'unknown', adminIds)} ·{' '}
                     {formatWhen(t.created_at)} · {replies}{' '}

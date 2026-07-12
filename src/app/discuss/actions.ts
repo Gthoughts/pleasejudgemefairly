@@ -183,6 +183,27 @@ export async function createThreadAction(formData: FormData) {
   redirect(`/discuss/${category}/${thread.id}`)
 }
 
+// Phase 11: any participant can flip a thread private/public. All the
+// authorisation (participant check, two-person minimum) lives in the
+// set_thread_privacy RPC so it cannot be bypassed.
+export async function setThreadPrivacyAction(formData: FormData) {
+  const threadId = requireString(formData.get('thread_id'), 'thread_id')
+  const category = requireString(formData.get('category'), 'category')
+  const makePrivate =
+    requireString(formData.get('make_private'), 'make_private') === 'true'
+
+  const { supabase } = await requireUser()
+
+  const { error } = await supabase.rpc('set_thread_privacy', {
+    p_thread_id: threadId,
+    p_private: makePrivate,
+  })
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/discuss/${category}`)
+  revalidatePath(`/discuss/${category}/${threadId}`)
+}
+
 // --------------------------------------------------------------------------
 // Replies
 // --------------------------------------------------------------------------

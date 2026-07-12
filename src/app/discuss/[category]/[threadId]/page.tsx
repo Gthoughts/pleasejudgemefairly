@@ -6,6 +6,7 @@ import { getCategory } from '@/lib/categories'
 import { createClient } from '@/lib/supabase/server'
 import PostItem from './PostItem'
 import RootReplyForm from './RootReplyForm'
+import { setThreadPrivacyAction } from '../../actions'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
@@ -115,7 +116,7 @@ export default async function ThreadPage(
   const { data: thread } = await supabase
     .from('threads')
     .select(
-      'id, title, author_id, created_at, category, users:author_id(username)'
+      'id, title, author_id, created_at, category, is_private, users:author_id(username)'
     )
     .eq('id', threadId)
     .eq('category', category)
@@ -125,6 +126,7 @@ export default async function ThreadPage(
       author_id: string
       created_at: string
       category: string
+      is_private: boolean
       users: { username: string } | null
     }>()
 
@@ -146,6 +148,17 @@ export default async function ThreadPage(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect(`/signin?next=/discuss/${category}/${threadId}`)
+
+  // Phase 11: who is in this conversation? (RLS: participants always see
+  // this list; for public threads any signed-in user can.)
+  const { data: participantRows } = await supabase
+    .from('thread_participants')
+    .select('user_id')
+    .eq('thread_id', threadId)
+  const participantCount = participantRows?.length ?? 0
+  const isParticipant = (participantRows ?? []).some(
+    (p) => p.user_id === user.id
+  )
 
   // Fetch the set of users I have muted so the renderer can collapse their
   // posts. Blocks aren't needed here because RLS enforces them on insert.
@@ -211,6 +224,51 @@ export default async function ThreadPage(
             </Link>
           </p>
           <h1 className="mt-1 text-2xl font-semibold">{thread.title}</h1>
+
+          {thread.is_private && (
+            <p className="mt-2 inline-flex items-center gap-2 rounded bg-stone-100 px-3 py-1.5 text-sm text-stone-700">
+              <span aria-hidden>🔒</span> Private conversation — only the{' '}
+              {participantCount} people already in it can see it or reply.
+            </p>
+          )}
+
+          {isParticipant && (
+            <div className="mt-3">
+              {thread.is_private ? (
+                <form action={setThreadPrivacyAction}>
+                  <input type="hidden" name="thread_id" value={threadId} />
+                  <input type="hidden" name="category" value={category} />
+                  <input type="hidden" name="make_private" value="false" />
+                  <button
+                    type="submit"
+                    className="rounded border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-100"
+                  >
+                    Make public
+                  </button>
+                  <p className="mt-1 text-xs text-stone-500">
+                    Everything written while private stays visible only to the
+                    people in the conversation now.
+                  </p>
+                </form>
+              ) : participantCount >= 2 ? (
+                <form action={setThreadPrivacyAction}>
+                  <input type="hidden" name="thread_id" value={threadId} />
+                  <input type="hidden" name="category" value={category} />
+                  <input type="hidden" name="make_private" value="true" />
+                  <button
+                    type="submit"
+                    className="rounded border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-100"
+                  >
+                    Make private
+                  </button>
+                  <p className="mt-1 text-xs text-stone-500">
+                    Hides this conversation from everyone except the{' '}
+                    {participantCount} people already in it.
+                  </p>
+                </form>
+              ) : null}
+            </div>
+          )}
 
           {roots.length === 0 && (
             <p className="mt-8 text-sm text-stone-500">
