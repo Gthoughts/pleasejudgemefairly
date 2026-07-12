@@ -8,6 +8,7 @@ import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
+import { isValidCategory } from '@/lib/user-projects/categories'
 
 const MAX_CONTENT = 20000
 const MAX_VISION = 200000
@@ -587,6 +588,135 @@ export async function flagProjectPostAction(formData: FormData) {
 
   revalidatePath(`/projects/${projectId}`)
 }
+
+// ---------------------------------------------------------------------------
+// User projects (lightweight, any signed-in user)
+// ---------------------------------------------------------------------------
+
+const USER_PROJECT_MAX_DESCRIPTION = 50000
+
+async function requireUserProjectCreator(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userProjectId: string,
+  userId: string
+) {
+  const { data: project } = await supabase
+    .from('user_projects')
+    .select('creator_id')
+    .eq('id', userProjectId)
+    .maybeSingle<{ creator_id: string }>()
+  if (!project) throw new Error('Project not found.')
+  if (project.creator_id !== userId)
+    throw new Error('Only the project creator can do this.')
+}
+
+export async function createUserProjectAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+
+  const title = requireString(formData.get('title'), 'title').trim()
+  const shortDescription = requireString(
+    formData.get('short_description'),
+    'short_description'
+  ).trim()
+  const description = requireString(
+    formData.get('description'),
+    'description'
+  ).trim()
+  const category = requireString(formData.get('category'), 'category').trim()
+
+  if (title.length < 1 || title.length > 200)
+    throw new Error('Title must be 1–200 characters.')
+  if (shortDescription.length < 1 || shortDescription.length > 500)
+    throw new Error('Short description must be 1–500 characters.')
+  if (
+    description.length < 1 ||
+    description.length > USER_PROJECT_MAX_DESCRIPTION
+  )
+    throw new Error(
+      `Description must be 1–${USER_PROJECT_MAX_DESCRIPTION} characters.`
+    )
+  if (!isValidCategory(category))
+    throw new Error('Please choose a category.')
+
+  const { data: project, error } = await supabase
+    .from('user_projects')
+    .insert({
+      creator_id: user.id,
+      title,
+      short_description: shortDescription,
+      description,
+      category,
+    })
+    .select('id')
+    .single()
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/projects')
+  redirect(`/projects/u/${project.id}`)
+}
+
+export async function editUserProjectAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const projectId = requireString(formData.get('project_id'), 'project_id')
+  await requireUserProjectCreator(supabase, projectId, user.id)
+
+  const title = requireString(formData.get('title'), 'title').trim()
+  const shortDescription = requireString(
+    formData.get('short_description'),
+    'short_description'
+  ).trim()
+  const description = requireString(
+    formData.get('description'),
+    'description'
+  ).trim()
+  const category = requireString(formData.get('category'), 'category').trim()
+
+  if (title.length < 1 || title.length > 200)
+    throw new Error('Title must be 1–200 characters.')
+  if (shortDescription.length < 1 || shortDescription.length > 500)
+    throw new Error('Short description must be 1–500 characters.')
+  if (
+    description.length < 1 ||
+    description.length > USER_PROJECT_MAX_DESCRIPTION
+  )
+    throw new Error(
+      `Description must be 1–${USER_PROJECT_MAX_DESCRIPTION} characters.`
+    )
+  if (!isValidCategory(category))
+    throw new Error('Please choose a category.')
+
+  const { error } = await supabase
+    .from('user_projects')
+    .update({
+      title,
+      short_description: shortDescription,
+      description,
+      category,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/projects')
+  revalidatePath(`/projects/u/${projectId}`)
+}
+
+export async function deleteUserProjectAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const projectId = requireString(formData.get('project_id'), 'project_id')
+  await requireUserProjectCreator(supabase, projectId, user.id)
+
+  const { error } = await supabase
+    .from('user_projects')
+    .delete()
+    .eq('id', projectId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/projects')
+  redirect('/projects')
+}
+
+// ---------------------------------------------------------------------------
 
 export async function rateProjectPostAction(formData: FormData) {
   const { supabase, user } = await requireUser()

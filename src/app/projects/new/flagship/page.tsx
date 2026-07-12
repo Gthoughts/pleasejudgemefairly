@@ -3,18 +3,20 @@ import { redirect } from 'next/navigation'
 import ProjectsHeader from '@/components/ProjectsHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
-import NewUserProjectForm from './NewUserProjectForm'
+import { isAdminEmail } from '@/lib/admin'
+import NewProjectForm from './NewProjectForm'
 
 export const metadata = {
-  title: 'New project — a place for you',
+  title: 'New flagship project — pleasejudgemefairly',
 }
 
-export default async function NewUserProjectPage() {
+export default async function NewFlagshipProjectPage() {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/signin?next=/projects/new')
+  if (!user) redirect('/signin?next=/projects/new/flagship')
+  if (!isAdminEmail(user.email)) redirect('/projects')
 
   return (
     <>
@@ -26,14 +28,14 @@ export default async function NewUserProjectPage() {
               ← Projects
             </Link>
           </p>
-          <h1 className="mt-1 text-2xl font-semibold">New project</h1>
+          <h1 className="mt-1 text-2xl font-semibold">New flagship project</h1>
           <p className="mt-2 text-sm text-stone-600">
-            Tell people what you&rsquo;re working on. It doesn&rsquo;t need
-            to be big — a garden, a group, a workshop, a book. Anything
-            you&rsquo;d like others to hear about.
+            Admin-only. Define the project, its vision, the financial model,
+            and the tier structure. No money is collected here — tiers are
+            purely an expression-of-interest framework.
           </p>
           <div className="mt-8">
-            <NewUserProjectForm />
+            <NewProjectForm />
           </div>
         </div>
       </main>

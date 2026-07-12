@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createProjectAction } from '../actions'
+import { createProjectAction } from '../../actions'
 
 type TierDraft = {
   name: string
