@@ -14,7 +14,7 @@ export default function SiteHeader() {
           href="/"
           className="font-serif text-base text-ink hover:text-moss shrink-0"
         >
-          The Accord
+          a place for you
         </Link>
 
         {/* Desktop nav */}

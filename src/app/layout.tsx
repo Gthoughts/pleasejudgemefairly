@@ -18,7 +18,7 @@ const publicSans = Public_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'The Accord',
+  title: 'a place for you',
   description:
     'A community commitment, written and voted through by the people, word by word. A duty we share, not a power we surrender.',
 }

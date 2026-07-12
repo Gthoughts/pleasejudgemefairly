@@ -3,7 +3,7 @@ import SiteFooter from '@/components/SiteFooter'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'About — The Accord',
+  title: 'About — a place for you',
 }
 
 export default function AboutPage() {
