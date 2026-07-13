@@ -11,6 +11,7 @@ import {
   isValidPlatform,
   SOCIAL_MEDIA_VIDEOS_SLUG,
 } from '@/lib/library-categories'
+import { isValidSubject } from '@/lib/library-subjects'
 import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
@@ -160,6 +161,11 @@ export async function submitResourceAction(formData: FormData) {
     platform = rawPlatform
   }
 
+  const rawSubject = (formData.get('subject') as string | null)?.trim() ?? ''
+  if (!isValidSubject(rawSubject))
+    throw new Error('Please pick a topic for this resource.')
+  const subject = rawSubject
+
   const { supabase, user } = await requireUser()
 
   // A pdf_path may only be supplied by an admin (matches the gating in
@@ -209,6 +215,7 @@ export async function submitResourceAction(formData: FormData) {
   if (platform) {
     insertPayload.platform = platform
   }
+  insertPayload.subject = subject
 
   const { data: inserted, error } = await supabase
     .from('resources')
@@ -294,6 +301,44 @@ export async function rateResourceAction(formData: FormData) {
   }
 
   revalidatePath(redirectPath)
+}
+
+// --------------------------------------------------------------------------
+// Re-tag a resource's topic (submitter or admin)
+// --------------------------------------------------------------------------
+
+export async function updateResourceSubjectAction(formData: FormData) {
+  const resourceId = requireString(formData.get('resource_id'), 'resource_id')
+  const category = requireString(formData.get('category'), 'category')
+  const rawSubject = requireString(formData.get('subject'), 'subject').trim()
+  if (!isValidSubject(rawSubject))
+    throw new Error('Please pick a valid topic.')
+
+  const { supabase, user } = await requireUser()
+
+  const { data: resource } = await supabase
+    .from('resources')
+    .select('submitter_id')
+    .eq('id', resourceId)
+    .maybeSingle<{ submitter_id: string }>()
+  if (!resource) throw new Error('Resource not found.')
+
+  const isSubmitter = resource.submitter_id === user.id
+  const isAdmin = isAdminEmail(user.email)
+  if (!isSubmitter && !isAdmin) {
+    throw new Error('Only the submitter or an admin can retag this.')
+  }
+
+  const client = isAdmin && !isSubmitter ? createServiceClient() : supabase
+  const { error } = await client
+    .from('resources')
+    .update({ subject: rawSubject })
+    .eq('id', resourceId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/library/${category}`)
+  revalidatePath(`/library/${category}/${resourceId}`)
+  revalidatePath(`/library/topic/${rawSubject}`)
 }
 
 // --------------------------------------------------------------------------

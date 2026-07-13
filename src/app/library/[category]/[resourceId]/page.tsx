@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getLibraryCategory } from '@/lib/library-categories'
 import { formatWhen } from '@/lib/format'
 import { getAdminUserIds, getDisplayUsername, isAdminEmail } from '@/lib/admin'
+import { subjectLabel } from '@/lib/library-subjects'
 import ResourceRatingButtons from './ResourceRatingButtons'
 import BrokenLinkButton from './BrokenLinkButton'
 import DeleteResourceButton from './DeleteResourceButton'
+import EditSubjectForm from './EditSubjectForm'
 
 export default async function ResourcePage(
   props: PageProps<'/library/[category]/[resourceId]'>
@@ -25,7 +27,7 @@ export default async function ResourcePage(
   const { data: resource } = await supabase
     .from('resources')
     .select(
-      'id, title, url, pdf_path, description, created_at, hold_state, hold_reasons, is_collapsed, broken_flag_count, broken_confirmed, submitter_id, users:submitter_id(username)'
+      'id, title, url, pdf_path, description, subject, created_at, hold_state, hold_reasons, is_collapsed, broken_flag_count, broken_confirmed, submitter_id, users:submitter_id(username)'
     )
     .eq('id', resourceId)
     .eq('category', category)
@@ -35,6 +37,7 @@ export default async function ResourcePage(
       url: string | null
       pdf_path: string | null
       description: string
+      subject: string | null
       created_at: string
       hold_state: string
       hold_reasons: string[] | null
@@ -134,6 +137,17 @@ export default async function ResourcePage(
 
           <h1 className="mt-4 text-2xl font-semibold">{resource.title}</h1>
 
+          {resource.subject && (
+            <p className="mt-1 text-xs">
+              <Link
+                href={`/library/topic/${resource.subject}`}
+                className="inline-block rounded bg-stone-100 px-2 py-0.5 text-stone-700 hover:bg-stone-200"
+              >
+                {subjectLabel(resource.subject)}
+              </Link>
+            </p>
+          )}
+
           <p className="mt-1 text-sm text-stone-500">
             submitted by{' '}
             <span className="font-medium text-stone-700">
@@ -200,7 +214,12 @@ export default async function ResourcePage(
           </div>
 
           {canDelete && (
-            <div className="mt-8 border-t border-stone-200 pt-4">
+            <div className="mt-8 flex flex-col gap-4 border-t border-stone-200 pt-4">
+              <EditSubjectForm
+                resourceId={resource.id}
+                category={category}
+                initialSubject={resource.subject}
+              />
               <DeleteResourceButton
                 resourceId={resource.id}
                 category={category}

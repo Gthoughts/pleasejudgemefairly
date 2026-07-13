@@ -8,6 +8,7 @@ import {
   SOCIAL_MEDIA_PLATFORMS,
   SOCIAL_MEDIA_VIDEOS_SLUG,
 } from '@/lib/library-categories'
+import { LIBRARY_SUBJECTS } from '@/lib/library-subjects'
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024
 
@@ -116,6 +117,25 @@ export default function NewResourceForm({
           placeholder="https://"
           className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
         />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-stone-700">Topic</span>
+        <select
+          name="subject"
+          required
+          defaultValue=""
+          className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+        >
+          <option value="" disabled>
+            Choose one…
+          </option>
+          {LIBRARY_SUBJECTS.map((s) => (
+            <option key={s.slug} value={s.slug}>
+              {s.name}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">

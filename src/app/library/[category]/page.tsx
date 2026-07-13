@@ -9,6 +9,7 @@ import {
   SOCIAL_MEDIA_PLATFORMS,
   SOCIAL_MEDIA_VIDEOS_SLUG,
 } from '@/lib/library-categories'
+import { LIBRARY_SUBJECTS, subjectLabel } from '@/lib/library-subjects'
 import { formatWhen } from '@/lib/format'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 
@@ -19,6 +20,7 @@ type ResourceRow = {
   pdf_path: string | null
   description: string
   platform: string | null
+  subject: string | null
   created_at: string
   hold_state: string
   is_collapsed: boolean
@@ -56,14 +58,14 @@ export default async function LibraryCategoryPage(
   const { data } = await supabase
     .from('resources')
     .select(
-      'id, title, url, pdf_path, description, platform, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
+      'id, title, url, pdf_path, description, platform, subject, created_at, hold_state, is_collapsed, broken_flag_count, broken_confirmed, rating_count, submitter_id, users:submitter_id(username)'
     )
     .eq('category', category)
     .order(
       sort === 'rated' ? 'rating_count' : 'created_at',
       { ascending: false, nullsFirst: false }
     )
-    .limit(100)
+    .limit(200)
     .returns<ResourceRow[]>()
 
   const resources = data ?? []
@@ -77,6 +79,20 @@ export default async function LibraryCategoryPage(
       const list = groupedByPlatform.get(key) ?? []
       list.push(r)
       groupedByPlatform.set(key, list)
+    }
+  }
+
+  const groupedBySubject = new Map<string, ResourceRow[]>()
+  const uncategorised: ResourceRow[] = []
+  if (!isSocialVideos) {
+    for (const r of resources) {
+      if (!r.subject) {
+        uncategorised.push(r)
+        continue
+      }
+      const list = groupedBySubject.get(r.subject) ?? []
+      list.push(r)
+      groupedBySubject.set(r.subject, list)
     }
   }
 
@@ -171,9 +187,47 @@ export default async function LibraryCategoryPage(
               })}
             </div>
           ) : (
-            <ul className="mt-6 divide-y divide-stone-200 border-y border-stone-200">
-              {resources.map((r) => renderResourceRow(r, category, adminIds))}
-            </ul>
+            <div className="mt-6 flex flex-col gap-8">
+              {LIBRARY_SUBJECTS.map((s) => {
+                const list = groupedBySubject.get(s.slug) ?? []
+                if (list.length === 0) return null
+                return (
+                  <div key={s.slug}>
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+                      <Link
+                        href={`/library/topic/${s.slug}`}
+                        className="hover:underline"
+                      >
+                        {s.name}
+                      </Link>
+                      <span className="ml-2 text-xs text-stone-400">
+                        ({list.length})
+                      </span>
+                    </h2>
+                    <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
+                      {list.map((r) =>
+                        renderResourceRow(r, category, adminIds)
+                      )}
+                    </ul>
+                  </div>
+                )
+              })}
+              {uncategorised.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
+                    {subjectLabel(null)}
+                    <span className="ml-2 text-xs text-stone-400">
+                      ({uncategorised.length})
+                    </span>
+                  </h2>
+                  <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
+                    {uncategorised.map((r) =>
+                      renderResourceRow(r, category, adminIds)
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>
