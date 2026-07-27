@@ -30,7 +30,7 @@ export default function SignUpForm() {
       password,
       options: {
         data: { username },
-        emailRedirectTo: `${siteUrl}/signin`,
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/`,
       },
     })
 
