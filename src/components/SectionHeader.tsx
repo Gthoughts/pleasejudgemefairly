@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { isAdminEmail } from '@/lib/admin'
 import { getInboxUnreadCount } from '@/lib/inbox'
 import SignOutButton from './SignOutButton'
 
@@ -18,7 +19,12 @@ type Current =
   | 'inbox'
   | 'review'
 
-type NavItem = { key: Current | 'about'; href: string; label: string }
+type NavItem = {
+  key: Current | 'about'
+  href: string
+  label: string
+  adminOnly?: boolean
+}
 
 const ALL_NAV: NavItem[] = [
   { key: 'discuss', href: '/discuss', label: 'Discussion' },
@@ -26,7 +32,7 @@ const ALL_NAV: NavItem[] = [
   { key: 'meetups', href: '/meetups', label: 'Meetups' },
   { key: 'projects', href: '/projects', label: 'Projects' },
   { key: 'about', href: '/about', label: 'How This Works' },
-  { key: 'review', href: '/review', label: 'Review queue' },
+  { key: 'review', href: '/review', label: 'Review queue', adminOnly: true },
 ]
 
 // A pill next to the Inbox link when there are unread replies.
@@ -58,11 +64,14 @@ export default async function SectionHeader({
   // returns 0 if the phase10 migration hasn't been applied yet, so
   // the header still renders during a rolling deploy.
   const unread = user ? await getInboxUnreadCount(supabase) : 0
+  const isAdmin = isAdminEmail(user?.email)
 
   // Put the current section first so it reads as the active one.
+  // Drop admin-only entries (Review queue) for non-admins.
+  const visible = ALL_NAV.filter((i) => !i.adminOnly || isAdmin)
   const items = [
-    ...ALL_NAV.filter((i) => i.key === current),
-    ...ALL_NAV.filter((i) => i.key !== current),
+    ...visible.filter((i) => i.key === current),
+    ...visible.filter((i) => i.key !== current),
   ]
 
   return (
