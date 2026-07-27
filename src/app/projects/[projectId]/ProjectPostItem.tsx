@@ -17,6 +17,7 @@ import {
 import ProjectRatingButtons from './ProjectRatingButtons'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import PendingSubmitButton from '@/components/PendingSubmitButton'
+import PostContent from '@/components/PostContent'
 
 type PostView = {
   id: string
@@ -157,9 +158,7 @@ export default function ProjectPostItem({
           </div>
         </form>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap break-words text-stone-800">
-          {post.content}
-        </div>
+        <PostContent content={post.content} />
       )}
 
       {mode !== 'editing' && (

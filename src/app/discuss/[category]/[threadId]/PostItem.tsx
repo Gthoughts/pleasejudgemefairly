@@ -14,6 +14,7 @@ import {
 } from '../../actions'
 import RatingButtons from './RatingButtons'
 import PendingSubmitButton from '@/components/PendingSubmitButton'
+import PostContent from '@/components/PostContent'
 
 type PostView = {
   id: string
@@ -163,9 +164,7 @@ export default function PostItem({
           </div>
         </form>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap break-words text-stone-800">
-          {post.content}
-        </div>
+        <PostContent content={post.content} />
       )}
 
       {mode !== 'editing' && (
