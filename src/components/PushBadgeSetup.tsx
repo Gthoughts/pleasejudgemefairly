@@ -70,6 +70,17 @@ export default function PushBadgeSetup({
     }
   }, [unreadCount])
 
+  // Register the service worker unconditionally so Chrome's PWA
+  // install prompt appears even before the user signs in.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return
+    }
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Non-fatal — install prompt just won't appear.
+    })
+  }, [])
+
   useEffect(() => {
     if (!signedIn) return
     let cancelled = false
@@ -86,7 +97,7 @@ export default function PushBadgeSetup({
       }
 
       try {
-        const reg = await navigator.serviceWorker.register('/sw.js')
+        const reg = await navigator.serviceWorker.ready
 
         const existing = await reg.pushManager.getSubscription()
         const permission = Notification.permission

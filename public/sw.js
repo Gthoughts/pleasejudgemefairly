@@ -17,6 +17,13 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
+// A no-op fetch handler is required by some Chrome versions before
+// the PWA install prompt will appear. We just pass every request
+// through to the network — no caching, no offline behaviour.
+self.addEventListener('fetch', () => {
+  // Intentionally empty.
+})
+
 self.addEventListener('push', (event) => {
   let count = 0
   try {
