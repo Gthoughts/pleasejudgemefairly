@@ -12,6 +12,7 @@ import {
   SOCIAL_MEDIA_VIDEOS_SLUG,
 } from '@/lib/library-categories'
 import { isValidSubject } from '@/lib/library-subjects'
+import { findRecentDuplicate } from '@/lib/dedupe'
 import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
@@ -167,6 +168,26 @@ export async function submitResourceAction(formData: FormData) {
   const subject = rawSubject
 
   const { supabase, user } = await requireUser()
+
+  // Short-window duplicate guard: if this user just submitted the same
+  // resource (URL match, or title + category if pdf-only) within the
+  // last ~45s, treat it as a double-click and redirect to the existing
+  // one instead of writing a second row.
+  {
+    const match: Record<string, string> = { category }
+    if (url) match.url = url
+    else match.title = title
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'resources',
+      userColumn: 'submitter_id',
+      userId: user.id,
+      match,
+    })
+    if (existingId) {
+      revalidatePath(`/library/${category}`)
+      redirect(`/library/${category}/${existingId}`)
+    }
+  }
 
   // A pdf_path may only be supplied by an admin (matches the gating in
   // getPdfUploadTargetAction). Silently drop otherwise so a crafted

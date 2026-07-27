@@ -13,6 +13,7 @@ import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
+import { findRecentDuplicate } from '@/lib/dedupe'
 
 // Matches the check constraint in schema.sql. If you change one, change
 // the other.
@@ -144,6 +145,22 @@ export async function createThreadAction(formData: FormData) {
 
   const { supabase, user } = await requireUser()
 
+  // Short-window duplicate guard: if the same user just created a
+  // thread with the same title in this category, treat this call as a
+  // double-click and redirect to that existing thread.
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'threads',
+      userColumn: 'author_id',
+      userId: user.id,
+      match: { category, title },
+    })
+    if (existingId) {
+      revalidatePath(`/discuss/${category}`)
+      redirect(`/discuss/${category}/${existingId}`)
+    }
+  }
+
   const { data: thread, error: threadErr } = await supabase
     .from('threads')
     .insert({ category, title, author_id: user.id })
@@ -251,6 +268,24 @@ export async function createReplyAction(formData: FormData) {
       throw new Error(
         `Replies can only be nested ${MAX_REPLY_DEPTH} levels deep.`
       )
+    }
+  }
+
+  // Short-window duplicate guard against double-click submissions.
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'posts',
+      userColumn: 'author_id',
+      userId: user.id,
+      match: {
+        thread_id: threadId,
+        parent_post_id: parentPostId,
+        content,
+      },
+    })
+    if (existingId) {
+      revalidatePath(`/discuss/${category}/${threadId}`)
+      return
     }
   }
 

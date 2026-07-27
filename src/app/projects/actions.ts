@@ -10,6 +10,7 @@ import { RATING_CONFIG } from '@/lib/rating/config'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { isValidCategory } from '@/lib/user-projects/categories'
 import { parseLinksFromFormData } from '@/lib/user-projects/links'
+import { findRecentDuplicate } from '@/lib/dedupe'
 
 const MAX_CONTENT = 20000
 const MAX_VISION = 200000
@@ -462,6 +463,24 @@ export async function createProjectPostAction(formData: FormData) {
   if (content.length < 1 || content.length > MAX_CONTENT)
     throw new Error(`Post must be 1–${MAX_CONTENT} characters.`)
 
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'project_posts',
+      userColumn: 'author_id',
+      userId: user.id,
+      match: {
+        project_id: projectId,
+        update_id: updateId,
+        parent_post_id: null,
+        content,
+      },
+    })
+    if (existingId) {
+      revalidatePath(`/projects/${projectId}`)
+      return
+    }
+  }
+
   const hold = await computeProjectPostHold(supabase, user.id, content)
 
   const { data: inserted, error } = await supabase
@@ -513,6 +532,23 @@ export async function createProjectReplyAction(formData: FormData) {
       .eq('id', parentPostId)
       .maybeSingle<{ update_id: string | null }>()
     updateId = parent?.update_id ?? null
+  }
+
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'project_posts',
+      userColumn: 'author_id',
+      userId: user.id,
+      match: {
+        project_id: projectId,
+        parent_post_id: parentPostId,
+        content,
+      },
+    })
+    if (existingId) {
+      revalidatePath(`/projects/${projectId}`)
+      return
+    }
   }
 
   const hold = await computeProjectPostHold(supabase, user.id, content)
@@ -640,6 +676,21 @@ export async function createUserProjectAction(formData: FormData) {
     throw new Error('Please choose a category.')
 
   const links = parseLinksFromFormData(formData)
+
+  // Short-window duplicate guard: same creator + same title in the
+  // last ~45s is treated as a double-click.
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'user_projects',
+      userColumn: 'creator_id',
+      userId: user.id,
+      match: { title },
+    })
+    if (existingId) {
+      revalidatePath('/projects')
+      redirect(`/projects/u/${existingId}`)
+    }
+  }
 
   const { data: project, error } = await supabase
     .from('user_projects')

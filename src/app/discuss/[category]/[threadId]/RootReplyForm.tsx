@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { createReplyAction } from '../../actions'
+import PendingSubmitButton from '@/components/PendingSubmitButton'
 
 // Top-level reply form shown under the thread. Posts a reply with
 // parent_post_id = null so it attaches directly to the thread rather than
@@ -38,12 +39,11 @@ export default function RootReplyForm({
         className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
       />
       <div>
-        <button
-          type="submit"
-          className="rounded bg-stone-900 text-stone-50 px-3 py-1.5 text-sm hover:bg-stone-700"
-        >
-          Post reply
-        </button>
+        <PendingSubmitButton
+          idle="Post reply"
+          pending="Posting…"
+          className="inline-flex items-center gap-2 rounded bg-stone-900 text-stone-50 px-3 py-1.5 text-sm hover:bg-stone-700 disabled:cursor-wait disabled:bg-stone-500"
+        />
       </div>
     </form>
   )

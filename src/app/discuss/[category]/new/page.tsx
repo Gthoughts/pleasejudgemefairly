@@ -5,6 +5,7 @@ import SiteFooter from '@/components/SiteFooter'
 import { getCategory } from '@/lib/categories'
 import { createClient } from '@/lib/supabase/server'
 import { createThreadAction } from '../../actions'
+import PendingSubmitButton from '@/components/PendingSubmitButton'
 
 export default async function NewThreadPage(
   props: PageProps<'/discuss/[category]/new'>
@@ -65,12 +66,10 @@ export default async function NewThreadPage(
             </label>
 
             <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                className="rounded bg-stone-900 text-stone-50 px-4 py-2 hover:bg-stone-700"
-              >
-                Post thread
-              </button>
+              <PendingSubmitButton
+                idle="Post thread"
+                pending="Posting…"
+              />
               <Link
                 href={`/discuss/${category}`}
                 className="text-sm text-stone-600 hover:underline"

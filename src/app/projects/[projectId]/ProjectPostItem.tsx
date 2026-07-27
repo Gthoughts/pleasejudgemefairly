@@ -16,6 +16,7 @@ import {
 } from '@/app/discuss/actions'
 import ProjectRatingButtons from './ProjectRatingButtons'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
+import PendingSubmitButton from '@/components/PendingSubmitButton'
 
 type PostView = {
   id: string
@@ -277,7 +278,13 @@ export default function ProjectPostItem({
       )}
 
       {mode === 'replying' && (
-        <form action={createProjectReplyAction} className="mt-3 flex flex-col gap-2">
+        <form
+          action={async (formData) => {
+            await createProjectReplyAction(formData)
+            setMode('view')
+          }}
+          className="mt-3 flex flex-col gap-2"
+        >
           <input type="hidden" name="project_id" value={projectId} />
           <input type="hidden" name="parent_post_id" value={post.id} />
           <textarea
@@ -290,13 +297,11 @@ export default function ProjectPostItem({
             className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
           />
           <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              onClick={() => setMode('view')}
-              className="rounded bg-stone-900 text-stone-50 px-3 py-1.5 text-sm hover:bg-stone-700"
-            >
-              Post reply
-            </button>
+            <PendingSubmitButton
+              idle="Post reply"
+              pending="Posting…"
+              className="inline-flex items-center gap-2 rounded bg-stone-900 text-stone-50 px-3 py-1.5 text-sm hover:bg-stone-700 disabled:cursor-wait disabled:bg-stone-500"
+            />
             <button
               type="button"
               onClick={() => setMode('view')}
