@@ -57,6 +57,68 @@ export default function HomePage() {
         </Link>
 
         <section
+          aria-label="Install to home screen"
+          className="mt-16 w-full max-w-2xl"
+        >
+          <details className="rounded border border-stone-200 bg-white/40">
+            <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer px-5 py-4 text-sm font-medium text-stone-700 hover:text-stone-900 select-none flex items-center justify-between">
+              <span>Add this to your phone&rsquo;s home screen</span>
+              <span
+                aria-hidden
+                className="text-stone-400 group-open:rotate-180 transition-transform"
+              >
+                ▾
+              </span>
+            </summary>
+            <div className="border-t border-stone-200 grid gap-6 px-5 py-5 sm:grid-cols-2 text-sm text-stone-700">
+              <div>
+                <h3 className="font-medium text-stone-900">On iPhone / iPad</h3>
+                <ol className="mt-2 flex flex-col gap-1.5 list-decimal pl-5 text-stone-700">
+                  <li>Open this page in Safari.</li>
+                  <li>
+                    Tap the <strong>Share</strong> icon (a square with an
+                    arrow pointing up) at the bottom of the screen.
+                  </li>
+                  <li>
+                    Scroll down and tap{' '}
+                    <strong>Add to Home Screen</strong>.
+                  </li>
+                  <li>
+                    Tap <strong>Add</strong> in the top-right corner.
+                  </li>
+                </ol>
+                <p className="mt-2 text-xs text-stone-500">
+                  The icon will appear on your home screen. Opening it
+                  from there gives you the site full-screen, like a
+                  proper app.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-medium text-stone-900">On Android</h3>
+                <ol className="mt-2 flex flex-col gap-1.5 list-decimal pl-5 text-stone-700">
+                  <li>Open this page in Chrome.</li>
+                  <li>
+                    Tap the <strong>three dots</strong> menu in the
+                    top-right.
+                  </li>
+                  <li>
+                    Tap <strong>Install app</strong> (or{' '}
+                    <strong>Add to Home screen</strong> on some phones).
+                  </li>
+                  <li>Follow the prompt and confirm.</li>
+                </ol>
+                <p className="mt-2 text-xs text-stone-500">
+                  The icon will appear on your home screen. Opening it
+                  from there gives you the site full-screen, like a
+                  proper app.
+                </p>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section
           aria-label="Dedication"
           className="mt-24 flex flex-col items-center"
         >
