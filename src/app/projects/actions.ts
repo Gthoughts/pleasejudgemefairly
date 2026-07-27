@@ -709,6 +709,17 @@ export async function createUserProjectAction(formData: FormData) {
     }
   }
 
+  const parentRaw = (formData.get('parent_project_id') as string | null)?.trim() ?? ''
+  const parentProjectId = parentRaw.length > 0 ? parentRaw : null
+  if (parentProjectId) {
+    const { data: parent } = await supabase
+      .from('user_projects')
+      .select('id')
+      .eq('id', parentProjectId)
+      .maybeSingle<{ id: string }>()
+    if (!parent) throw new Error('Parent project not found.')
+  }
+
   const { data: project, error } = await supabase
     .from('user_projects')
     .insert({
@@ -718,12 +729,14 @@ export async function createUserProjectAction(formData: FormData) {
       description,
       category,
       links,
+      parent_project_id: parentProjectId,
     })
     .select('id')
     .single()
   if (error) throw new Error(error.message)
 
   revalidatePath('/projects')
+  if (parentProjectId) revalidatePath(`/projects/u/${parentProjectId}`)
   redirect(`/projects/u/${project.id}`)
 }
 
@@ -789,6 +802,260 @@ export async function deleteUserProjectAction(formData: FormData) {
 
   revalidatePath('/projects')
   redirect('/projects')
+}
+
+// ---------------------------------------------------------------------------
+// Mini forum on each user project
+// ---------------------------------------------------------------------------
+
+async function computeUserProjectPostHold(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  rawContent: string
+): Promise<{
+  hold_state: 'none' | 'held'
+  hold_reasons: string[] | null
+  hold_expires_at: string | null
+  filterReasons: string[]
+}> {
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('created_at')
+    .eq('id', userId)
+    .maybeSingle<{ created_at: string }>()
+  const ageDays =
+    userRow?.created_at !== undefined
+      ? (Date.now() - new Date(userRow.created_at).getTime()) /
+        (1000 * 60 * 60 * 24)
+      : null
+
+  const windowMs = FILTER_CONFIG.duplicateWindowHours * 60 * 60 * 1000
+  const since = new Date(Date.now() - windowMs).toISOString()
+  const { data: recent } = await supabase
+    .from('user_project_posts')
+    .select('content')
+    .eq('author_id', userId)
+    .gte('created_at', since)
+
+  const recentNormalised = (recent ?? []).map((p) =>
+    normaliseContent((p as { content: string }).content)
+  )
+
+  const result = runFilter(rawContent, {
+    authorAccountAgeDays: ageDays,
+    recentNormalisedPosts: recentNormalised,
+  })
+
+  if (!result.held) {
+    return {
+      hold_state: 'none',
+      hold_reasons: null,
+      hold_expires_at: null,
+      filterReasons: [],
+    }
+  }
+
+  const holdWindowMs = RATING_CONFIG.holdWindowHours * 60 * 60 * 1000
+  const expiresAt = new Date(Date.now() + holdWindowMs).toISOString()
+  return {
+    hold_state: 'held',
+    hold_reasons: result.reasons,
+    hold_expires_at: expiresAt,
+    filterReasons: result.reasons,
+  }
+}
+
+async function userProjectPostDepth(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  postId: string
+): Promise<number> {
+  let depth = 0
+  let current: string | null = postId
+  while (current) {
+    const result: { data: { parent_post_id: string | null } | null } =
+      await supabase
+        .from('user_project_posts')
+        .select('parent_post_id')
+        .eq('id', current)
+        .maybeSingle()
+    if (!result.data) break
+    if (!result.data.parent_post_id) return depth
+    current = result.data.parent_post_id
+    depth++
+    if (depth > MAX_REPLY_DEPTH + 2) break
+  }
+  return depth
+}
+
+export async function createUserProjectPostAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const userProjectId = requireString(
+    formData.get('user_project_id'),
+    'user_project_id'
+  )
+  const content = requireString(formData.get('content'), 'content').trim()
+
+  if (content.length < 1 || content.length > MAX_CONTENT)
+    throw new Error(`Post must be 1–${MAX_CONTENT} characters.`)
+
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'user_project_posts',
+      userColumn: 'author_id',
+      userId: user.id,
+      match: {
+        user_project_id: userProjectId,
+        parent_post_id: null,
+        content,
+      },
+    })
+    if (existingId) {
+      revalidatePath(`/projects/u/${userProjectId}`)
+      return
+    }
+  }
+
+  const hold = await computeUserProjectPostHold(supabase, user.id, content)
+
+  const { error } = await supabase.from('user_project_posts').insert({
+    user_project_id: userProjectId,
+    parent_post_id: null,
+    author_id: user.id,
+    content,
+    hold_state: hold.hold_state,
+    hold_reasons: hold.hold_reasons,
+    hold_expires_at: hold.hold_expires_at,
+  })
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/projects/u/${userProjectId}`)
+}
+
+export async function createUserProjectReplyAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const userProjectId = requireString(
+    formData.get('user_project_id'),
+    'user_project_id'
+  )
+  const parentRaw = formData.get('parent_post_id')
+  const parentPostId =
+    typeof parentRaw === 'string' && parentRaw.length > 0 ? parentRaw : null
+  const content = requireString(formData.get('content'), 'content').trim()
+
+  if (content.length < 1 || content.length > MAX_CONTENT)
+    throw new Error(`Reply must be 1–${MAX_CONTENT} characters.`)
+
+  if (parentPostId) {
+    const parentDepth = await userProjectPostDepth(supabase, parentPostId)
+    if (parentDepth >= MAX_REPLY_DEPTH)
+      throw new Error(
+        `Replies can only be nested ${MAX_REPLY_DEPTH} levels deep.`
+      )
+  }
+
+  {
+    const existingId = await findRecentDuplicate(supabase, {
+      table: 'user_project_posts',
+      userColumn: 'author_id',
+      userId: user.id,
+      match: {
+        user_project_id: userProjectId,
+        parent_post_id: parentPostId,
+        content,
+      },
+    })
+    if (existingId) {
+      revalidatePath(`/projects/u/${userProjectId}`)
+      return
+    }
+  }
+
+  const hold = await computeUserProjectPostHold(supabase, user.id, content)
+
+  const { error } = await supabase.from('user_project_posts').insert({
+    user_project_id: userProjectId,
+    parent_post_id: parentPostId,
+    author_id: user.id,
+    content,
+    hold_state: hold.hold_state,
+    hold_reasons: hold.hold_reasons,
+    hold_expires_at: hold.hold_expires_at,
+  })
+  if (error) throw new Error(error.message)
+
+  // Silent badge push to the parent post's author.
+  if (parentPostId) {
+    try {
+      const { data: parent } = await supabase
+        .from('user_project_posts')
+        .select('author_id')
+        .eq('id', parentPostId)
+        .maybeSingle<{ author_id: string }>()
+      if (parent?.author_id && parent.author_id !== user.id) {
+        await sendBadgePush(parent.author_id)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  revalidatePath(`/projects/u/${userProjectId}`)
+}
+
+export async function editUserProjectPostAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const postId = requireString(formData.get('post_id'), 'post_id')
+  const userProjectId = requireString(
+    formData.get('user_project_id'),
+    'user_project_id'
+  )
+  const content = requireString(formData.get('content'), 'content').trim()
+
+  if (content.length < 1 || content.length > MAX_CONTENT)
+    throw new Error(`Content must be 1–${MAX_CONTENT} characters.`)
+
+  const { data: existing } = await supabase
+    .from('user_project_posts')
+    .select('author_id')
+    .eq('id', postId)
+    .maybeSingle<{ author_id: string }>()
+  if (!existing) throw new Error('Post not found.')
+  if (existing.author_id !== user.id)
+    throw new Error('Only the author can edit this post.')
+
+  const { error } = await supabase
+    .from('user_project_posts')
+    .update({ content, updated_at: new Date().toISOString() })
+    .eq('id', postId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/projects/u/${userProjectId}`)
+}
+
+export async function deleteUserProjectPostAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const postId = requireString(formData.get('post_id'), 'post_id')
+  const userProjectId = requireString(
+    formData.get('user_project_id'),
+    'user_project_id'
+  )
+
+  const { data: existing } = await supabase
+    .from('user_project_posts')
+    .select('author_id')
+    .eq('id', postId)
+    .maybeSingle<{ author_id: string }>()
+  if (!existing) throw new Error('Post not found.')
+  if (existing.author_id !== user.id)
+    throw new Error('Only the author can delete this post.')
+
+  const { error } = await supabase
+    .from('user_project_posts')
+    .delete()
+    .eq('id', postId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/projects/u/${userProjectId}`)
 }
 
 // ---------------------------------------------------------------------------

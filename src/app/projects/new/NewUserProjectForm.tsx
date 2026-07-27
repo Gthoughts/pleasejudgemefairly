@@ -5,7 +5,11 @@ import { createUserProjectAction } from '../actions'
 import { USER_PROJECT_CATEGORIES } from '@/lib/user-projects/categories'
 import ProjectLinksEditor from '../ProjectLinksEditor'
 
-export default function NewUserProjectForm() {
+export default function NewUserProjectForm({
+  parentProjectId,
+}: {
+  parentProjectId?: string | null
+}) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,6 +29,13 @@ export default function NewUserProjectForm() {
 
   return (
     <form action={onSubmit} className="flex flex-col gap-5">
+      {parentProjectId ? (
+        <input
+          type="hidden"
+          name="parent_project_id"
+          value={parentProjectId}
+        />
+      ) : null}
       <div>
         <label
           htmlFor="up-title"
