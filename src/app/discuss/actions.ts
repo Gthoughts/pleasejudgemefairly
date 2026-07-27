@@ -14,6 +14,7 @@ import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
 import { findRecentDuplicate } from '@/lib/dedupe'
+import { sendBadgePush } from '@/lib/push/server'
 
 // Matches the check constraint in schema.sql. If you change one, change
 // the other.
@@ -320,7 +321,45 @@ export async function createReplyAction(formData: FormData) {
     .update({ updated_at: new Date().toISOString() })
     .eq('id', threadId)
 
+  // Silent push to whoever this reply is aimed at so their PWA icon
+  // badge lights up. Best-effort — swallows all errors.
+  await notifyReplyRecipient(supabase, user.id, threadId, parentPostId)
+
   revalidatePath(`/discuss/${category}/${threadId}`)
+}
+
+// Figure out the recipient of a reply (the parent post author for a
+// nested reply, or the thread author for a top-level reply) and send
+// them a silent badge push. Skips self-replies.
+async function notifyReplyRecipient(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  authorId: string,
+  threadId: string,
+  parentPostId: string | null
+) {
+  try {
+    let recipientId: string | null = null
+    if (parentPostId) {
+      const { data } = await supabase
+        .from('posts')
+        .select('author_id')
+        .eq('id', parentPostId)
+        .maybeSingle<{ author_id: string }>()
+      recipientId = data?.author_id ?? null
+    } else {
+      const { data } = await supabase
+        .from('threads')
+        .select('author_id')
+        .eq('id', threadId)
+        .maybeSingle<{ author_id: string }>()
+      recipientId = data?.author_id ?? null
+    }
+    if (recipientId && recipientId !== authorId) {
+      await sendBadgePush(recipientId)
+    }
+  } catch {
+    // ignore
+  }
 }
 
 // --------------------------------------------------------------------------

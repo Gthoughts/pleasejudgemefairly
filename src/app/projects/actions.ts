@@ -11,6 +11,7 @@ import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { isValidCategory } from '@/lib/user-projects/categories'
 import { parseLinksFromFormData } from '@/lib/user-projects/links'
 import { findRecentDuplicate } from '@/lib/dedupe'
+import { sendBadgePush } from '@/lib/push/server'
 
 const MAX_CONTENT = 20000
 const MAX_VISION = 200000
@@ -571,6 +572,22 @@ export async function createProjectReplyAction(formData: FormData) {
 
   if (hold.filterReasons.length > 0 && inserted) {
     await recordAutoFlagsProject(supabase, inserted.id, hold.filterReasons)
+  }
+
+  // Silent push to the parent post author so their PWA icon lights up.
+  if (parentPostId) {
+    try {
+      const { data: parent } = await supabase
+        .from('project_posts')
+        .select('author_id')
+        .eq('id', parentPostId)
+        .maybeSingle<{ author_id: string }>()
+      if (parent?.author_id && parent.author_id !== user.id) {
+        await sendBadgePush(parent.author_id)
+      }
+    } catch {
+      // ignore
+    }
   }
 
   revalidatePath(`/projects/${projectId}`)
