@@ -98,13 +98,22 @@ export default function VideoPlayer({
   const [reportOpen, setReportOpen] = useState<boolean>(false)
   const [playing, setPlaying] = useState<boolean>(false)
 
-  // Debug: last event source fired (or null). Combined into the
-  // top-right pill along with the live watch counter so we can see
-  // both at a glance.
-  const [debugFired, setDebugFired] = useState<string | null>(null)
-  const debugTick = (label: string) => {
-    setDebugFired(label)
-    setTimeout(() => setDebugFired((v) => (v === label ? null : v)), 800)
+  // Persistent event counters shown in the debug pill so we can
+  // tell exactly which event source is firing.
+  const debugCountsRef = useRef<{
+    pd: number
+    pu: number
+    pc: number
+    ts: number
+    te: number
+    tc: number
+    swipes: number
+    votes: number
+  }>({ pd: 0, pu: 0, pc: 0, ts: 0, te: 0, tc: 0, swipes: 0, votes: 0 })
+  const [debugTick, setDebugTick] = useState(0)
+  const bumpDebug = (k: keyof typeof debugCountsRef.current) => {
+    debugCountsRef.current[k]++
+    setDebugTick((n) => n + 1)
   }
 
   // Live watched-seconds shown in the debug pill so we can diagnose
@@ -318,6 +327,10 @@ export default function VideoPlayer({
     } else if (ady > adx && ady >= SWIPE_THRESHOLD_PX && dy < 0) {
       dir = 'up'
     }
+    if (dir) {
+      debugCountsRef.current.swipes++
+      setDebugTick((n) => n + 1)
+    }
     if (dir === 'left') doVote('helpful')
     else if (dir === 'right') doVote('unhelpful')
     else if (dir === 'up') openComments()
@@ -339,7 +352,7 @@ export default function VideoPlayer({
   const DEDUPE_MS = 400 // how long to absorb the sibling event system
 
   const onPointerDown = (e: ReactPointerEvent) => {
-    debugTick(`P down (${e.pointerType})`)
+    bumpDebug('pd')
     if (e.pointerType === 'mouse' && e.button !== 0) return
     if (Date.now() - justHandledAtRef.current < DEDUPE_MS) return
     try {
@@ -387,18 +400,20 @@ export default function VideoPlayer({
   }
 
   const onPointerUp = (e: ReactPointerEvent) => {
+    bumpDebug('pu')
     if (pointerStartRef.current === null) return
     justHandledAtRef.current = Date.now()
     endGesture(e.clientX, e.clientY)
   }
 
   const onPointerCancel = () => {
+    bumpDebug('pc')
     cancelPress()
     pointerStartRef.current = null
   }
 
   const onTouchStart = (e: ReactTouchEvent) => {
-    debugTick('T start')
+    bumpDebug('ts')
     if (Date.now() - justHandledAtRef.current < DEDUPE_MS) return
     const t = e.touches[0]
     if (!t) return
@@ -406,6 +421,7 @@ export default function VideoPlayer({
   }
 
   const onTouchEnd = (e: ReactTouchEvent) => {
+    bumpDebug('te')
     if (pointerStartRef.current === null) return
     justHandledAtRef.current = Date.now()
     const t = e.changedTouches[0]
@@ -414,6 +430,7 @@ export default function VideoPlayer({
   }
 
   const onTouchCancel = () => {
+    bumpDebug('tc')
     cancelPress()
     pointerStartRef.current = null
   }
@@ -564,14 +581,31 @@ export default function VideoPlayer({
         </div>
       ) : null}
 
-      {/* Debug indicator: top-right corner. Shows the last touch/
-          pointer event and the live "watched seconds" for the vote
-          gate. `w=Xs/Ys` reads "watched X, need Y for 50%". */}
-      <div className="pointer-events-none absolute top-2 right-2 z-30 rounded bg-black/70 px-2 py-1 text-[10px] font-mono text-white">
-        {debugFired ?? 'touch me'}{' '}
-        w={Math.floor(debugWatched)}s/
-        {Math.ceil(effectiveDuration * (WATCH_GATE_PERCENT / 100))}s
-      </div>
+      {/* Debug indicator: top-right, persistent counters so we can
+          see exactly which event stream is (or isn't) firing.
+            pd/pu/pc = pointerdown/up/cancel
+            ts/te/tc = touchstart/end/cancel
+            sw = swipes classified
+            w  = seconds watched (need N for the 50% gate)
+            a  = active flag, if = isIframe flag */}
+      {(() => {
+        const c = debugCountsRef.current
+        void debugTick // keep in deps so re-renders track state
+        return (
+          <div className="pointer-events-none absolute top-2 right-2 z-30 rounded bg-black/80 px-2 py-1 text-[10px] font-mono leading-tight text-white text-right">
+            <div>pd:{c.pd} pu:{c.pu} pc:{c.pc}</div>
+            <div>ts:{c.ts} te:{c.te} tc:{c.tc}</div>
+            <div>sw:{c.swipes}</div>
+            <div>
+              w={Math.floor(debugWatched)}s/
+              {Math.ceil(effectiveDuration * (WATCH_GATE_PERCENT / 100))}s
+            </div>
+            <div>
+              a={active ? '1' : '0'} if={isIframe ? '1' : '0'}
+            </div>
+          </div>
+        )
+      })()}
 
       {reportOpen ? (
         <ReportModal
