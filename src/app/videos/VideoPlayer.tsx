@@ -10,10 +10,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  WATCH_GATE_PERCENT,
-  WATCH_HEARTBEAT_MS,
-} from '@/lib/videos/watch'
+import { WATCH_GATE_PERCENT } from '@/lib/videos/watch'
 import { REPORT_LONG_PRESS_MS } from '@/lib/videos/reports'
 import { detectEmbed, embedIframeUrl } from '@/lib/media-embeds'
 import type { FeedVideo } from '@/lib/videos/queries'
@@ -64,7 +61,9 @@ const TAP_MAX_DURATION_MS = 200
 const TAP_MAX_TRAVEL_PX = 8
 // Fallback duration we use to compute the 50% gate if the uploader
 // didn't tell us the video length (iframe path can't tell us either).
-const FALLBACK_DURATION_S = 60
+// Short-form Shorts / Reels / TikToks are typically 15-30s, so a
+// small default keeps the vote gate reachable inside one viewing.
+const FALLBACK_DURATION_S = 20
 
 export default function VideoPlayer({
   video,
@@ -99,12 +98,49 @@ export default function VideoPlayer({
   const [reportOpen, setReportOpen] = useState<boolean>(false)
   const [playing, setPlaying] = useState<boolean>(false)
 
-  // Debug: shows which event source fired, if any. Only rendered
-  // in the top-right of the player. Values: 'pointer' | 'touch' | null.
+  // Debug: last event source fired (or null). Combined into the
+  // top-right pill along with the live watch counter so we can see
+  // both at a glance.
   const [debugFired, setDebugFired] = useState<string | null>(null)
   const debugTick = (label: string) => {
     setDebugFired(label)
     setTimeout(() => setDebugFired((v) => (v === label ? null : v)), 800)
+  }
+
+  // Live watched-seconds shown in the debug pill so we can diagnose
+  // whether the wall-clock tracker is accumulating as expected.
+  const [debugWatched, setDebugWatched] = useState<number>(0)
+
+  // Whether the player has been unmuted (via the YouTube iframe API
+  // postMessage below). We track it so the button toggles.
+  const [unmuted, setUnmuted] = useState<boolean>(false)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+
+  function sendYouTubeCommand(func: 'unMute' | 'mute' | 'setVolume', arg?: number) {
+    const w = iframeRef.current?.contentWindow
+    if (!w) return
+    const msg = {
+      event: 'command',
+      func,
+      args: arg === undefined ? '' : [arg],
+    }
+    try {
+      w.postMessage(JSON.stringify(msg), '*')
+    } catch {
+      // best effort
+    }
+  }
+
+  function toggleUnmute() {
+    if (embed?.platform !== 'youtube') return
+    if (unmuted) {
+      sendYouTubeCommand('mute')
+      setUnmuted(false)
+    } else {
+      sendYouTubeCommand('unMute')
+      sendYouTubeCommand('setVolume', 80)
+      setUnmuted(true)
+    }
   }
 
   // Long-press progress (0..1)
@@ -223,15 +259,15 @@ export default function VideoPlayer({
     if (!active) return
     const iv = setInterval(() => {
       const watched = readCurrentWatched()
+      setDebugWatched(watched)
       if (!qualified && effectiveDuration > 0) {
         const pct = (watched / effectiveDuration) * 100
         if (pct >= WATCH_GATE_PERCENT) setQualified(true)
       }
       heartbeat()
-    }, WATCH_HEARTBEAT_MS)
+    }, 1000) // 1s so the debug counter is smooth; heartbeat still debounces via lastReportedRef
     return () => {
       clearInterval(iv)
-      // One last shot on unmount.
       heartbeat()
     }
   }, [active, heartbeat, qualified, effectiveDuration, readCurrentWatched])
@@ -429,6 +465,7 @@ export default function VideoPlayer({
         />
       ) : embed ? (
         <iframe
+          ref={iframeRef}
           src={embedIframeUrl(embed)}
           className="pointer-events-none h-full w-full"
           title={video.title}
@@ -553,13 +590,29 @@ export default function VideoPlayer({
         </div>
       ) : null}
 
-      {/* Debug indicator: top-right corner. Flashes on every pointer
-          or touch event that reaches the overlay. If this NEVER
-          flashes when you touch the video, the overlay is not
-          receiving events. If it flashes but no swipe / long-press
-          fires, the downstream classification is the problem. */}
+      {/* YouTube-only unmute button. Sits above the overlay so a
+          tap definitely reaches it. Uses YouTube's IFrame Player
+          API postMessage protocol (enablejsapi=1 in the URL) to
+          toggle mute without loading their tracking JS SDK.
+          TikTok / Instagram / Vimeo don't expose an equivalent, so
+          the button is only shown for YouTube. */}
+      {embed?.platform === 'youtube' ? (
+        <button
+          type="button"
+          onClick={toggleUnmute}
+          className="absolute top-2 left-2 z-30 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85"
+        >
+          {unmuted ? 'Mute' : 'Unmute'}
+        </button>
+      ) : null}
+
+      {/* Debug indicator: top-right corner. Shows the last touch/
+          pointer event and the live "watched seconds" for the vote
+          gate. `w=Xs/Ys` reads "watched X, need Y for 50%". */}
       <div className="pointer-events-none absolute top-2 right-2 z-30 rounded bg-black/70 px-2 py-1 text-[10px] font-mono text-white">
-        {debugFired ?? 'touch me'}
+        {debugFired ?? 'touch me'}{' '}
+        w={Math.floor(debugWatched)}s/
+        {Math.ceil(effectiveDuration * (WATCH_GATE_PERCENT / 100))}s
       </div>
 
       {reportOpen ? (

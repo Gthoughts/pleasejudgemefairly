@@ -130,7 +130,10 @@ export function embedIframeUrl(info: EmbedInfo): string {
       // mute=1 is required for browsers to honour autoplay=1 in an
       // iframe; without it the video is loaded but never starts.
       // playsinline=1 keeps iOS from flipping fullscreen on tap.
-      return `https://www.youtube-nocookie.com/embed/${info.id}?rel=0&modestbranding=1&autoplay=1&mute=1&playsinline=1`
+      // enablejsapi=1 lets us postMessage commands (unmute etc.)
+      // from the parent without loading YouTube's tracking-heavy
+      // JS SDK.
+      return `https://www.youtube-nocookie.com/embed/${info.id}?rel=0&modestbranding=1&autoplay=1&mute=1&playsinline=1&enablejsapi=1`
     case 'vimeo':
       return `https://player.vimeo.com/video/${info.id}?dnt=1&autoplay=1&muted=1&playsinline=1`
     case 'tiktok':
