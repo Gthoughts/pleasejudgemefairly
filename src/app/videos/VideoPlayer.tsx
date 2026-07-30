@@ -375,11 +375,16 @@ export default function VideoPlayer({
       return
     }
     setVoteFlash(rating)
+    // Auto-clear the flash after 1.5s so it visually reads as
+    // "the vote landed" rather than a stuck state.
+    setTimeout(() => setVoteFlash((v) => (v === rating ? null : v)), 1500)
     try {
       const fd = new FormData()
       fd.set('video_id', video.id)
       fd.set('rating', rating)
       await voteOnVideoAction(fd)
+      debugCountsRef.current.votes++
+      setDebugTick((n) => n + 1)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Vote failed.'
       setGestureHint(msg)
@@ -533,17 +538,19 @@ export default function VideoPlayer({
         )}
       </div>
 
-      {/* Vote flash */}
+      {/* Vote flash: full-screen colour wash for 1.5s so a
+          successful swipe is impossible to miss. Very high z-index
+          so it sits above the debug pill too. */}
       {voteFlash ? (
         <div
           className={
-            'pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full px-4 py-2 text-sm font-medium ' +
-            (voteFlash === 'helpful'
-              ? 'bg-emerald-500/85 text-white'
-              : 'bg-stone-500/85 text-white')
+            'pointer-events-none absolute inset-0 z-40 flex items-center justify-center ' +
+            (voteFlash === 'helpful' ? 'bg-emerald-500/60' : 'bg-stone-700/60')
           }
         >
-          {voteFlash === 'helpful' ? 'helpful' : 'unhelpful'}
+          <span className="rounded-full bg-white/95 px-6 py-3 text-lg font-semibold text-stone-900 shadow-lg">
+            {voteFlash === 'helpful' ? 'helpful' : 'unhelpful'}
+          </span>
         </div>
       ) : null}
 
@@ -595,7 +602,7 @@ export default function VideoPlayer({
           <div className="pointer-events-none absolute top-2 right-2 z-30 rounded bg-black/80 px-2 py-1 text-[10px] font-mono leading-tight text-white text-right">
             <div>pd:{c.pd} pu:{c.pu} pc:{c.pc}</div>
             <div>ts:{c.ts} te:{c.te} tc:{c.tc}</div>
-            <div>sw:{c.swipes}</div>
+            <div>sw:{c.swipes} v:{c.votes}</div>
             <div>
               w={Math.floor(debugWatched)}s/
               {Math.ceil(effectiveDuration * (WATCH_GATE_PERCENT / 100))}s
