@@ -111,37 +111,11 @@ export default function VideoPlayer({
   // whether the wall-clock tracker is accumulating as expected.
   const [debugWatched, setDebugWatched] = useState<number>(0)
 
-  // Whether the player has been unmuted (via the YouTube iframe API
-  // postMessage below). We track it so the button toggles.
-  const [unmuted, setUnmuted] = useState<boolean>(false)
+  // Iframe ref kept for a future YouTube IFrame API integration
+  // (unmute via postMessage). Not currently wired because the
+  // enablejsapi=1 parameter seems to interfere with playback on
+  // some clients; revisit later once we know why.
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-
-  function sendYouTubeCommand(func: 'unMute' | 'mute' | 'setVolume', arg?: number) {
-    const w = iframeRef.current?.contentWindow
-    if (!w) return
-    const msg = {
-      event: 'command',
-      func,
-      args: arg === undefined ? '' : [arg],
-    }
-    try {
-      w.postMessage(JSON.stringify(msg), '*')
-    } catch {
-      // best effort
-    }
-  }
-
-  function toggleUnmute() {
-    if (embed?.platform !== 'youtube') return
-    if (unmuted) {
-      sendYouTubeCommand('mute')
-      setUnmuted(false)
-    } else {
-      sendYouTubeCommand('unMute')
-      sendYouTubeCommand('setVolume', 80)
-      setUnmuted(true)
-    }
-  }
 
   // Long-press progress (0..1)
   const [pressProgress, setPressProgress] = useState<number>(0)
@@ -588,22 +562,6 @@ export default function VideoPlayer({
         <div className="pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded bg-stone-900/85 px-3 py-1.5 text-xs text-stone-100 shadow">
           {gestureHint}
         </div>
-      ) : null}
-
-      {/* YouTube-only unmute button. Sits above the overlay so a
-          tap definitely reaches it. Uses YouTube's IFrame Player
-          API postMessage protocol (enablejsapi=1 in the URL) to
-          toggle mute without loading their tracking JS SDK.
-          TikTok / Instagram / Vimeo don't expose an equivalent, so
-          the button is only shown for YouTube. */}
-      {embed?.platform === 'youtube' ? (
-        <button
-          type="button"
-          onClick={toggleUnmute}
-          className="absolute top-2 left-2 z-30 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85"
-        >
-          {unmuted ? 'Mute' : 'Unmute'}
-        </button>
       ) : null}
 
       {/* Debug indicator: top-right corner. Shows the last touch/
