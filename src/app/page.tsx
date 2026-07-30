@@ -16,7 +16,7 @@ export default function HomePage() {
       <SiteHeader />
       <main className="flex-1 flex flex-col items-center px-6 pt-16 pb-20">
         <p className="mb-8 max-w-2xl text-center italic text-stone-600 text-base sm:text-lg leading-relaxed">
-          It only takes one to get up and dance and two to join.
+          Sitting on the grass is fine, until it isn&apos;t.
         </p>
 
         <div className="w-full max-w-4xl">

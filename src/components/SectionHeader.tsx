@@ -14,6 +14,7 @@ import SignOutButton from './SignOutButton'
 type Current =
   | 'discuss'
   | 'library'
+  | 'videos'
   | 'meetups'
   | 'projects'
   | 'inbox'
@@ -29,6 +30,7 @@ type NavItem = {
 const ALL_NAV: NavItem[] = [
   { key: 'discuss', href: '/discuss', label: 'Discussion' },
   { key: 'library', href: '/library', label: 'Library' },
+  { key: 'videos', href: '/videos', label: 'Videos' },
   { key: 'meetups', href: '/meetups', label: 'Meetups' },
   { key: 'projects', href: '/projects', label: 'Projects' },
   { key: 'about', href: '/about', label: 'How This Works' },

@@ -8,6 +8,7 @@ export type EmbedInfo =
   | { platform: 'youtube'; id: string; url: string }
   | { platform: 'vimeo'; id: string; url: string }
   | { platform: 'tiktok'; id: string; url: string }
+  | { platform: 'instagram'; id: string; url: string }
 
 // One line of a post, either as a plain URL (auto-link it) or an
 // embeddable video.
@@ -20,6 +21,7 @@ const YT_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com'])
 const YT_SHORT = new Set(['youtu.be', 'www.youtu.be'])
 const VIMEO_HOSTS = new Set(['vimeo.com', 'www.vimeo.com', 'player.vimeo.com'])
 const TIKTOK_HOSTS = new Set(['tiktok.com', 'www.tiktok.com', 'm.tiktok.com'])
+const IG_HOSTS = new Set(['instagram.com', 'www.instagram.com', 'm.instagram.com'])
 
 export function detectEmbed(rawUrl: string): EmbedInfo | null {
   let u: URL
@@ -62,6 +64,13 @@ export function detectEmbed(rawUrl: string): EmbedInfo | null {
     // /@user/video/ID
     const m = u.pathname.match(/\/video\/(\d+)/)
     if (m) return { platform: 'tiktok', id: m[1], url: rawUrl }
+    return null
+  }
+
+  if (IG_HOSTS.has(host)) {
+    // /reel/<id> or /reels/<id>
+    const m = u.pathname.match(/^\/(?:reel|reels)\/([\w-]+)/)
+    if (m) return { platform: 'instagram', id: m[1], url: rawUrl }
     return null
   }
 
@@ -118,11 +127,16 @@ export function parsePostContent(content: string): LinkOrEmbed[] {
 export function embedIframeUrl(info: EmbedInfo): string {
   switch (info.platform) {
     case 'youtube':
-      return `https://www.youtube-nocookie.com/embed/${info.id}?rel=0&modestbranding=1&autoplay=1`
+      // mute=1 is required for browsers to honour autoplay=1 in an
+      // iframe; without it the video is loaded but never starts.
+      // playsinline=1 keeps iOS from flipping fullscreen on tap.
+      return `https://www.youtube-nocookie.com/embed/${info.id}?rel=0&modestbranding=1&autoplay=1&mute=1&playsinline=1`
     case 'vimeo':
-      return `https://player.vimeo.com/video/${info.id}?dnt=1&autoplay=1`
+      return `https://player.vimeo.com/video/${info.id}?dnt=1&autoplay=1&muted=1&playsinline=1`
     case 'tiktok':
-      return `https://www.tiktok.com/embed/v2/${info.id}`
+      return `https://www.tiktok.com/embed/v2/${info.id}?autoplay=1&muted=1`
+    case 'instagram':
+      return `https://www.instagram.com/reel/${info.id}/embed/`
   }
 }
 
@@ -141,5 +155,7 @@ export function embedPlatformLabel(info: EmbedInfo): string {
       return 'Vimeo'
     case 'tiktok':
       return 'TikTok'
+    case 'instagram':
+      return 'Instagram'
   }
 }

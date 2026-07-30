@@ -3,13 +3,17 @@ import { redirect } from 'next/navigation'
 import DiscussHeader from '@/components/DiscussHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { formatWhen } from '@/lib/format'
 import { isAdminEmail, getAdminUserIds, getDisplayUsername } from '@/lib/admin'
+import type { ReportReasonType } from '@/lib/videos/reports'
 import {
   releaseHeldPostAdminAction,
   releaseHeldResourceAdminAction,
   confirmBrokenLinkAction,
 } from './actions'
+import VideoTaxonomyReviewItem from './VideoTaxonomyReviewItem'
+import VideoReportReviewItem from './VideoReportReviewItem'
 
 export const metadata = {
   title: 'Review queue — a place for you',
@@ -127,6 +131,279 @@ export default async function ReviewPage() {
     >()
 
   const brokenRows = brokenResources ?? []
+
+  // ------------------------------------------------------------------
+  // Video taxonomy queue (pending categories + subcategories)
+  // Admin-only; service role reads because we cross into other users'
+  // data (username lookups, video counts).
+  // ------------------------------------------------------------------
+
+  type TaxonomyItem = {
+    id: string
+    slug: string
+    name: string
+    createdAt: string
+    createdBy: string | null
+    createdByUsername: string | null
+    parentCategoryName?: string
+    videoCount: number
+    mergeTargets: { id: string; name: string; slug: string }[]
+  }
+
+  let pendingCategoryItems: TaxonomyItem[] = []
+  let pendingSubcategoryItems: TaxonomyItem[] = []
+  let pendingReportItems: {
+    reportId: string
+    videoId: string
+    videoTitle: string
+    reasonType: ReportReasonType
+    note: string | null
+    reporterUsername: string | null
+    reporterWarningsSoFar: number
+    reporterRevoked: boolean
+    createdAt: string
+    otherPendingCount: number
+  }[] = []
+
+  if (userIsAdmin) {
+    const service = createServiceClient()
+
+    // --- Categories ---
+    const { data: pCats } = await service
+      .from('video_categories')
+      .select('id, slug, name, created_at, created_by')
+      .eq('status', 'pending_review')
+      .order('created_at', { ascending: true })
+      .returns<
+        {
+          id: string
+          slug: string
+          name: string
+          created_at: string
+          created_by: string | null
+        }[]
+      >()
+    const catRows = pCats ?? []
+
+    const { data: activeCats } = await service
+      .from('video_categories')
+      .select('id, slug, name')
+      .eq('status', 'active')
+      .order('name', { ascending: true })
+      .returns<{ id: string; name: string; slug: string }[]>()
+
+    const catUsernames = new Map<string, string>()
+    const catUserIds = catRows.map((c) => c.created_by).filter(Boolean) as string[]
+    if (catUserIds.length > 0) {
+      const { data: uRows } = await service
+        .from('users')
+        .select('id, username')
+        .in('id', catUserIds)
+        .returns<{ id: string; username: string }[]>()
+      for (const u of uRows ?? []) catUsernames.set(u.id, u.username)
+    }
+
+    const catVideoCounts = new Map<string, number>()
+    if (catRows.length > 0) {
+      const { data: vRows } = await service
+        .from('videos')
+        .select('id, category_id')
+        .in('id', []) // placeholder to keep the type
+        .returns<{ id: string; category_id: string }[]>()
+      void vRows
+      // Cheaper: count per category individually since Postgres
+      // group_by via supabase-js needs an RPC. Small N.
+      for (const c of catRows) {
+        const { count } = await service
+          .from('videos')
+          .select('id', { count: 'exact', head: true })
+          .eq('category_id', c.id)
+        catVideoCounts.set(c.id, count ?? 0)
+      }
+    }
+
+    pendingCategoryItems = catRows.map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      createdAt: c.created_at,
+      createdBy: c.created_by,
+      createdByUsername: c.created_by
+        ? (catUsernames.get(c.created_by) ?? null)
+        : null,
+      videoCount: catVideoCounts.get(c.id) ?? 0,
+      mergeTargets: (activeCats ?? []).filter((a) => a.id !== c.id),
+    }))
+
+    // --- Subcategories ---
+    const { data: pSubs } = await service
+      .from('video_subcategories')
+      .select('id, slug, name, category_id, created_at, created_by')
+      .eq('status', 'pending_review')
+      .order('created_at', { ascending: true })
+      .returns<
+        {
+          id: string
+          slug: string
+          name: string
+          category_id: string
+          created_at: string
+          created_by: string | null
+        }[]
+      >()
+    const subRows = pSubs ?? []
+
+    const parentCatIds = Array.from(new Set(subRows.map((s) => s.category_id)))
+    const parentCatById = new Map<string, string>()
+    if (parentCatIds.length > 0) {
+      const { data: pcRows } = await service
+        .from('video_categories')
+        .select('id, name')
+        .in('id', parentCatIds)
+        .returns<{ id: string; name: string }[]>()
+      for (const c of pcRows ?? []) parentCatById.set(c.id, c.name)
+    }
+
+    // Active peers for merge target, per parent category.
+    const peersByCat = new Map<
+      string,
+      { id: string; name: string; slug: string }[]
+    >()
+    if (parentCatIds.length > 0) {
+      const { data: peerRows } = await service
+        .from('video_subcategories')
+        .select('id, name, slug, category_id')
+        .eq('status', 'active')
+        .in('category_id', parentCatIds)
+        .returns<
+          { id: string; name: string; slug: string; category_id: string }[]
+        >()
+      for (const p of peerRows ?? []) {
+        const arr = peersByCat.get(p.category_id) ?? []
+        arr.push({ id: p.id, name: p.name, slug: p.slug })
+        peersByCat.set(p.category_id, arr)
+      }
+    }
+
+    const subUsernames = new Map<string, string>()
+    const subUserIds = subRows.map((s) => s.created_by).filter(Boolean) as string[]
+    if (subUserIds.length > 0) {
+      const { data: uRows } = await service
+        .from('users')
+        .select('id, username')
+        .in('id', subUserIds)
+        .returns<{ id: string; username: string }[]>()
+      for (const u of uRows ?? []) subUsernames.set(u.id, u.username)
+    }
+
+    const subVideoCounts = new Map<string, number>()
+    for (const s of subRows) {
+      const { count } = await service
+        .from('videos')
+        .select('id', { count: 'exact', head: true })
+        .eq('subcategory_id', s.id)
+      subVideoCounts.set(s.id, count ?? 0)
+    }
+
+    pendingSubcategoryItems = subRows.map((s) => ({
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      createdAt: s.created_at,
+      createdBy: s.created_by,
+      createdByUsername: s.created_by
+        ? (subUsernames.get(s.created_by) ?? null)
+        : null,
+      parentCategoryName: parentCatById.get(s.category_id) ?? '',
+      videoCount: subVideoCounts.get(s.id) ?? 0,
+      mergeTargets:
+        (peersByCat.get(s.category_id) ?? []).filter((p) => p.id !== s.id),
+    }))
+
+    // --- Reports queue ---
+    const { data: reports } = await service
+      .from('video_reports')
+      .select('id, video_id, reporter_id, reason_type, note, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .returns<
+        {
+          id: string
+          video_id: string
+          reporter_id: string
+          reason_type: ReportReasonType
+          note: string | null
+          created_at: string
+        }[]
+      >()
+    const rRows = reports ?? []
+
+    const reportVideoIds = Array.from(new Set(rRows.map((r) => r.video_id)))
+    const videoTitles = new Map<string, string>()
+    if (reportVideoIds.length > 0) {
+      const { data: vRows } = await service
+        .from('videos')
+        .select('id, title')
+        .in('id', reportVideoIds)
+        .returns<{ id: string; title: string }[]>()
+      for (const v of vRows ?? []) videoTitles.set(v.id, v.title)
+    }
+
+    const reporterIds = Array.from(new Set(rRows.map((r) => r.reporter_id)))
+    const reporterMap = new Map<
+      string,
+      { username: string; warnings: number; revoked: boolean }
+    >()
+    if (reporterIds.length > 0) {
+      const { data: uRows } = await service
+        .from('users')
+        .select(
+          'id, username, video_report_warnings, video_report_privilege_revoked_at'
+        )
+        .in('id', reporterIds)
+        .returns<
+          {
+            id: string
+            username: string
+            video_report_warnings: number
+            video_report_privilege_revoked_at: string | null
+          }[]
+        >()
+      for (const u of uRows ?? []) {
+        reporterMap.set(u.id, {
+          username: u.username,
+          warnings: u.video_report_warnings ?? 0,
+          revoked: u.video_report_privilege_revoked_at !== null,
+        })
+      }
+    }
+
+    // Count how many OTHER pending reports each video has, so the
+    // admin knows if their verdict is one of several coming in.
+    const perVideoPending = new Map<string, number>()
+    for (const r of rRows) {
+      perVideoPending.set(
+        r.video_id,
+        (perVideoPending.get(r.video_id) ?? 0) + 1
+      )
+    }
+
+    pendingReportItems = rRows.map((r) => ({
+      reportId: r.id,
+      videoId: r.video_id,
+      videoTitle: videoTitles.get(r.video_id) ?? '(video not found)',
+      reasonType: r.reason_type,
+      note: r.note,
+      reporterUsername: reporterMap.get(r.reporter_id)?.username ?? null,
+      reporterWarningsSoFar: reporterMap.get(r.reporter_id)?.warnings ?? 0,
+      reporterRevoked: reporterMap.get(r.reporter_id)?.revoked ?? false,
+      createdAt: r.created_at,
+      otherPendingCount: Math.max(
+        0,
+        (perVideoPending.get(r.video_id) ?? 1) - 1
+      ),
+    }))
+  }
 
   return (
     <>
@@ -412,6 +689,86 @@ export default async function ReviewPage() {
               </ul>
             )}
           </section>
+
+          {/* ----------------------------------------------------------------
+              Section 4: Video reports (admin only)
+          ---------------------------------------------------------------- */}
+          {userIsAdmin && (
+            <section>
+              <h2 className="text-xl font-semibold">Video reports</h2>
+              <p className="mt-2 text-sm text-stone-600">
+                Videos that have been reported by a viewer. Each report is
+                already holding the video off the feed until you decide.
+              </p>
+
+              {pendingReportItems.length === 0 ? (
+                <p className="mt-6 text-sm text-stone-500">
+                  No pending reports.
+                </p>
+              ) : (
+                <ul className="mt-4 divide-y divide-stone-200 border-y border-stone-200">
+                  {pendingReportItems.map((r) => (
+                    <VideoReportReviewItem key={r.reportId} {...r} />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {/* ----------------------------------------------------------------
+              Section 5: Video taxonomy queue (admin only)
+          ---------------------------------------------------------------- */}
+          {userIsAdmin && (
+            <section>
+              <h2 className="text-xl font-semibold">Video categories awaiting review</h2>
+              <p className="mt-2 text-sm text-stone-600">
+                Categories a user picked &quot;other&quot; for. Live already; you can
+                keep them, rename to something cleaner, merge into an existing
+                one, or reject the whole thing (unpublishes any videos filed
+                under it).
+              </p>
+
+              {pendingCategoryItems.length === 0 ? (
+                <p className="mt-6 text-sm text-stone-500">
+                  No categories awaiting review.
+                </p>
+              ) : (
+                <ul className="mt-4 divide-y divide-stone-200 border-y border-stone-200">
+                  {pendingCategoryItems.map((c) => (
+                    <VideoTaxonomyReviewItem
+                      key={c.id}
+                      kind="category"
+                      {...c}
+                    />
+                  ))}
+                </ul>
+              )}
+
+              <h3 className="mt-8 text-base font-semibold">
+                Subcategories awaiting review
+              </h3>
+              <p className="mt-1 text-sm text-stone-600">
+                Same choices as above. Reject only clears the subcategory tag
+                on the videos; it does not unpublish them.
+              </p>
+
+              {pendingSubcategoryItems.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-500">
+                  No subcategories awaiting review.
+                </p>
+              ) : (
+                <ul className="mt-4 divide-y divide-stone-200 border-y border-stone-200">
+                  {pendingSubcategoryItems.map((s) => (
+                    <VideoTaxonomyReviewItem
+                      key={s.id}
+                      kind="subcategory"
+                      {...s}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </div>
       </main>
       <SiteFooter />

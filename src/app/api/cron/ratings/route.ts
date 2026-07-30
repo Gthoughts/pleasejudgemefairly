@@ -27,14 +27,26 @@ function authorised(request: NextRequest): boolean {
   return auth === `Bearer ${secret}`
 }
 
+// Content types the cron scores. Each maps to its own table and its
+// own column on collapse_log.
+type ScorableContentType = 'post' | 'resource' | 'video' | 'video_post'
+type ScorableTable = 'posts' | 'resources' | 'videos' | 'video_posts'
+
+const COLLAPSE_LOG_FK: Record<ScorableContentType, string> = {
+  post: 'post_id',
+  resource: 'resource_id',
+  video: 'video_id',
+  video_post: 'video_post_id',
+}
+
 // ------------------------------------------------------------------
-// Shared helper: score one content type (posts or resources) using
-// the same MF + collapse logic.
+// Shared helper: score one content type using the same MF + collapse
+// logic. Works for posts, resources, videos, and video comments.
 // ------------------------------------------------------------------
 async function scoreContentType(
   supabase: ReturnType<typeof createServiceClient>,
-  contentType: 'post' | 'resource',
-  table: 'posts' | 'resources'
+  contentType: ScorableContentType,
+  table: ScorableTable
 ): Promise<{
   mfInputLength: number
   itemsScored: number
@@ -115,10 +127,7 @@ async function scoreContentType(
     updated++
 
     const wasCollapsed = priorStates.get(d.postId) ?? false
-    const logBase =
-      contentType === 'post'
-        ? { post_id: d.postId }
-        : { resource_id: d.postId }
+    const logBase = { [COLLAPSE_LOG_FK[contentType]]: d.postId }
 
     if (d.collapse && !wasCollapsed) {
       newlyCollapsed++
@@ -165,8 +174,8 @@ async function scoreContentType(
 // inside the hold window. Returns the count of released items.
 async function releaseExpiredHolds(
   supabase: ReturnType<typeof createServiceClient>,
-  table: 'posts' | 'resources',
-  contentType: 'post' | 'resource'
+  table: ScorableTable,
+  contentType: ScorableContentType
 ): Promise<number> {
   const nowIso = new Date().toISOString()
   const { data: expired } = await supabase
@@ -196,8 +205,7 @@ async function releaseExpiredHolds(
       })
       .eq('id', itemId)
 
-    const logBase =
-      contentType === 'post' ? { post_id: itemId } : { resource_id: itemId }
+    const logBase = { [COLLAPSE_LOG_FK[contentType]]: itemId }
     await supabase.from('collapse_log').insert({
       ...logBase,
       event: 'released',
@@ -217,31 +225,37 @@ async function handle(request: NextRequest) {
   const supabase = createServiceClient()
   const startedAt = Date.now()
 
-  // Score posts and resources in sequence (same DB, sequential is fine).
-  const [postStats, resourceStats] = await Promise.all([
-    scoreContentType(supabase, 'post', 'posts'),
-    scoreContentType(supabase, 'resource', 'resources'),
-  ])
+  const [postStats, resourceStats, videoStats, videoPostStats] =
+    await Promise.all([
+      scoreContentType(supabase, 'post', 'posts'),
+      scoreContentType(supabase, 'resource', 'resources'),
+      scoreContentType(supabase, 'video', 'videos'),
+      scoreContentType(supabase, 'video_post', 'video_posts'),
+    ])
+
+  const summarise = (s: {
+    mfInputLength: number
+    itemsScored: number
+    updated: number
+    newlyCollapsed: number
+    newlyUncollapsed: number
+    holdsReleased: number
+  }) => ({
+    ratings: s.mfInputLength,
+    scored: s.itemsScored,
+    updated: s.updated,
+    newlyCollapsed: s.newlyCollapsed,
+    newlyUncollapsed: s.newlyUncollapsed,
+    holdsReleased: s.holdsReleased,
+  })
 
   return NextResponse.json({
     ok: true,
     durationMs: Date.now() - startedAt,
-    posts: {
-      ratings: postStats.mfInputLength,
-      scored: postStats.itemsScored,
-      updated: postStats.updated,
-      newlyCollapsed: postStats.newlyCollapsed,
-      newlyUncollapsed: postStats.newlyUncollapsed,
-      holdsReleased: postStats.holdsReleased,
-    },
-    resources: {
-      ratings: resourceStats.mfInputLength,
-      scored: resourceStats.itemsScored,
-      updated: resourceStats.updated,
-      newlyCollapsed: resourceStats.newlyCollapsed,
-      newlyUncollapsed: resourceStats.newlyUncollapsed,
-      holdsReleased: resourceStats.holdsReleased,
-    },
+    posts: summarise(postStats),
+    resources: summarise(resourceStats),
+    videos: summarise(videoStats),
+    videoPosts: summarise(videoPostStats),
   })
 }
 

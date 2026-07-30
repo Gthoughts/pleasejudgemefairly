@@ -17,7 +17,7 @@ export default function InlineVideoEmbed({ info }: { info: EmbedInfo }) {
   const [playing, setPlaying] = useState(false)
 
   if (playing) {
-    const isTikTok = info.platform === 'tiktok'
+    const isTikTok = info.platform === 'tiktok' || info.platform === 'instagram'
     return (
       <div
         className={
