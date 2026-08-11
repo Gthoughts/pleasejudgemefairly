@@ -47,7 +47,12 @@ export default function SignUpForm() {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-stone-700">Username</span>
+        <span className="text-stone-700">
+          Username{' '}
+          <span className="font-normal text-stone-400">
+            (try not to use your real name)
+          </span>
+        </span>
         <input
           type="text"
           required
