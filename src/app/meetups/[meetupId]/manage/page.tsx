@@ -11,6 +11,9 @@ import {
   addNeedAction,
   arrangeNeedAction,
   deleteNeedAction,
+  approveHelperAction,
+  declineHelperAction,
+  removeCoOrganiserAction,
 } from '../../actions'
 
 function formatMeetupDateLocal(iso: string): string {
@@ -57,7 +60,16 @@ export default async function ManageMeetupPage(
     }>()
 
   if (!meetup) notFound()
-  if (meetup.organiser_id !== user.id) {
+
+  const isLeadOrganiser = meetup.organiser_id === user.id
+  const { data: coRow } = await supabase
+    .from('meetup_co_organisers')
+    .select('user_id')
+    .eq('meetup_id', meetupId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const isCoOrganiser = !!coRow
+  if (!isLeadOrganiser && !isCoOrganiser) {
     redirect(`/meetups/${meetupId}`)
   }
 
@@ -103,6 +115,35 @@ export default async function ManageMeetupPage(
     }[]>()
 
   const needs = needsData ?? []
+
+  // Fetch pending helper requests + current co-organisers (lead-only view).
+  const { data: pendingReqs } = isLeadOrganiser
+    ? await supabase
+        .from('meetup_organiser_requests')
+        .select('id, user_id, requested_at, users:user_id(username)')
+        .eq('meetup_id', meetupId)
+        .eq('status', 'pending')
+        .order('requested_at', { ascending: true })
+        .returns<{
+          id: string
+          user_id: string
+          requested_at: string
+          users: { username: string } | null
+        }[]>()
+    : { data: null }
+
+  const { data: coOrganisers } = isLeadOrganiser
+    ? await supabase
+        .from('meetup_co_organisers')
+        .select('user_id, added_at, users:user_id(username)')
+        .eq('meetup_id', meetupId)
+        .order('added_at', { ascending: true })
+        .returns<{
+          user_id: string
+          added_at: string
+          users: { username: string } | null
+        }[]>()
+    : { data: null }
 
   return (
     <>
@@ -463,8 +504,91 @@ export default async function ManageMeetupPage(
             </section>
           )}
 
-          {/* ---- Cancel meetup ---- */}
-          {!isCancelled && (
+          {/* ---- Helpers (lead only) ---- */}
+          {isLeadOrganiser && (
+            <section>
+              <h2 className="text-xl font-semibold">Helpers</h2>
+              <p className="mt-1 text-sm text-stone-500">
+                Anyone signed in can offer to help organise. Approved helpers can
+                edit details, post announcements and message registrants. Only you
+                can cancel the meetup or manage this list.
+              </p>
+
+              {/* Pending requests */}
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-stone-700">Pending requests</h3>
+                {(pendingReqs ?? []).length === 0 ? (
+                  <p className="mt-2 text-sm text-stone-500">Nothing to review.</p>
+                ) : (
+                  <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
+                    {(pendingReqs ?? []).map((r) => (
+                      <li key={r.id} className="flex items-center justify-between gap-4 py-3">
+                        <span className="text-sm text-stone-800">
+                          {r.users?.username ?? 'unknown'}
+                        </span>
+                        <div className="flex gap-2">
+                          <form action={approveHelperAction}>
+                            <input type="hidden" name="meetup_id" value={meetupId} />
+                            <input type="hidden" name="request_id" value={r.id} />
+                            <button
+                              type="submit"
+                              className="rounded bg-stone-900 text-stone-50 px-3 py-1 text-xs hover:bg-stone-700"
+                            >
+                              Approve
+                            </button>
+                          </form>
+                          <form action={declineHelperAction}>
+                            <input type="hidden" name="meetup_id" value={meetupId} />
+                            <input type="hidden" name="request_id" value={r.id} />
+                            <button
+                              type="submit"
+                              className="rounded border border-stone-300 px-3 py-1 text-xs text-stone-600 hover:border-stone-500 hover:text-stone-900"
+                            >
+                              Decline
+                            </button>
+                          </form>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Current helpers */}
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-stone-700">Current helpers</h3>
+                {(coOrganisers ?? []).length === 0 ? (
+                  <p className="mt-2 text-sm text-stone-500">No helpers yet.</p>
+                ) : (
+                  <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
+                    {(coOrganisers ?? []).map((c) => (
+                      <li key={c.user_id} className="flex items-center justify-between gap-4 py-3">
+                        <span className="text-sm text-stone-800">
+                          {c.users?.username ?? 'unknown'}
+                        </span>
+                        <form action={removeCoOrganiserAction}>
+                          <input type="hidden" name="meetup_id" value={meetupId} />
+                          <input type="hidden" name="user_id" value={c.user_id} />
+                          <button
+                            type="submit"
+                            className="text-xs text-stone-500 underline hover:text-red-700"
+                            onClick={(e) => {
+                              if (!confirm('Remove this helper?')) e.preventDefault()
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* ---- Cancel meetup (lead only) ---- */}
+          {!isCancelled && isLeadOrganiser && (
             <section>
               <h2 className="text-xl font-semibold text-red-800">Cancel meetup</h2>
               <p className="mt-1 text-sm text-stone-500">

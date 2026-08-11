@@ -8,12 +8,14 @@ import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import RegistrationSection from './RegistrationSection'
 import MeetupPostItem from './MeetupPostItem'
 import MeetupRootReplyForm from './MeetupRootReplyForm'
+import CopyShortLinkButton from './CopyShortLinkButton'
 import {
   addNeedAction,
   offerNeedAction,
   withdrawOfferAction,
   arrangeNeedAction,
   deleteNeedAction,
+  requestToHelpOrganiseAction,
 } from '../actions'
 
 function formatMeetupDate(iso: string): string {
@@ -137,7 +139,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
   const { data: meetup } = await supabase
     .from('meetups')
     .select(
-      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, users:organiser_id(username), meetup_questions(id, question_text, display_order)'
+      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, users:organiser_id(username), meetup_questions(id, question_text, display_order)'
     )
     .eq('id', meetupId)
     .maybeSingle<{
@@ -150,6 +152,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
       status: string
       organiser_id: string
       max_attendees: number | null
+      slug: string
       users: { username: string } | null
       meetup_questions: { id: string; question_text: string; display_order: number }[]
     }>()
@@ -177,7 +180,28 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
   const isFull =
     meetup.max_attendees !== null && attendeeCount >= meetup.max_attendees && !isRegistered
   const isCancelled = meetup.status === 'cancelled'
-  const isOrganiser = meetup.organiser_id === user.id
+  const isLeadOrganiser = meetup.organiser_id === user.id
+
+  // Co-organiser lookup + this user's helper-request status.
+  const { data: coRow } = await supabase
+    .from('meetup_co_organisers')
+    .select('user_id')
+    .eq('meetup_id', meetupId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const isCoOrganiser = !!coRow
+
+  const { data: myRequest } = await supabase
+    .from('meetup_organiser_requests')
+    .select('status')
+    .eq('meetup_id', meetupId)
+    .eq('user_id', user.id)
+    .maybeSingle<{ status: 'pending' | 'approved' | 'declined' }>()
+  const helperStatus = myRequest?.status ?? null
+
+  const isOrganiser = isLeadOrganiser || isCoOrganiser
+  const canRequestToHelp =
+    !isCancelled && !isLeadOrganiser && !isCoOrganiser && helperStatus !== 'pending'
 
   // Fetch needs.
   const { data: needsData } = await supabase
@@ -273,6 +297,36 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
                 >
                   Manage
                 </Link>
+              )}
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <CopyShortLinkButton slug={meetup.slug} />
+              {canRequestToHelp && (
+                <form action={requestToHelpOrganiseAction}>
+                  <input type="hidden" name="meetup_id" value={meetupId} />
+                  <button
+                    type="submit"
+                    className="inline-flex items-center rounded border border-stone-300 px-2.5 py-1 text-xs text-stone-600 hover:border-stone-500 hover:text-stone-900"
+                  >
+                    Help organise this event
+                  </button>
+                </form>
+              )}
+              {helperStatus === 'pending' && !isCoOrganiser && (
+                <span className="inline-flex items-center rounded bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs text-amber-800">
+                  Helper request pending
+                </span>
+              )}
+              {helperStatus === 'declined' && !isCoOrganiser && (
+                <span className="inline-flex items-center rounded bg-stone-100 border border-stone-200 px-2.5 py-1 text-xs text-stone-500">
+                  Helper request declined
+                </span>
+              )}
+              {isCoOrganiser && !isLeadOrganiser && (
+                <span className="inline-flex items-center rounded bg-stone-100 border border-stone-200 px-2.5 py-1 text-xs text-stone-600">
+                  You&rsquo;re a helper
+                </span>
               )}
             </div>
 

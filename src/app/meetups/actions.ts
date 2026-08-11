@@ -7,6 +7,7 @@ import { runFilter, normaliseContent } from '@/lib/filters/filter'
 import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
+import { slugify, findFreeSlug, SLUG_MIN, SLUG_MAX, SLUG_PATTERN } from '@/lib/meetup-slug'
 
 const MAX_CONTENT = 20000
 
@@ -37,6 +38,43 @@ async function requireOrganiser(
   if (!meetup) throw new Error('Meetup not found.')
   if (meetup.organiser_id !== userId) throw new Error('Only the organiser can do this.')
   return meetup
+}
+
+async function isCoOrganiser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  meetupId: string,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('meetup_co_organisers')
+    .select('user_id')
+    .eq('meetup_id', meetupId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  return !!data
+}
+
+// Grants access to lead organiser and approved co-organisers. Used
+// for actions where a helper should be able to act (edit details,
+// arrange needs, post announcements etc.). Cancelling the meetup
+// and managing the helper list stay on requireOrganiser (lead only).
+async function requireLeadOrCoOrganiser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  meetupId: string,
+  userId: string
+): Promise<{ organiser_id: string; status: string; isLead: boolean }> {
+  const { data: meetup } = await supabase
+    .from('meetups')
+    .select('organiser_id, status')
+    .eq('id', meetupId)
+    .maybeSingle<{ organiser_id: string; status: string }>()
+  if (!meetup) throw new Error('Meetup not found.')
+  const isLead = meetup.organiser_id === userId
+  if (!isLead) {
+    const isCo = await isCoOrganiser(supabase, meetupId, userId)
+    if (!isCo) throw new Error('Only the organiser or a helper can do this.')
+  }
+  return { ...meetup, isLead }
 }
 
 // Runs the content filter and returns hold fields to merge into the insert.
@@ -158,6 +196,22 @@ export async function createMeetupAction(formData: FormData) {
   if (maxAttendees !== null && (isNaN(maxAttendees) || maxAttendees < 1))
     throw new Error('Maximum attendees must be a positive number.')
 
+  const slugRaw = (formData.get('slug') as string | null)?.trim() ?? ''
+  let base: string | null
+  if (slugRaw.length > 0) {
+    base = slugify(slugRaw)
+    if (base === null)
+      throw new Error(
+        `Short link must have at least ${SLUG_MIN} letters or numbers.`
+      )
+    if (!SLUG_PATTERN.test(base) || base.length > SLUG_MAX)
+      throw new Error(`Short link must be ${SLUG_MIN}–${SLUG_MAX} chars, letters, numbers and dashes.`)
+  } else {
+    base = slugify(title)
+    if (base === null) base = 'meetup'
+  }
+  const slug = await findFreeSlug(supabase, base)
+
   const { data: meetup, error: meetupErr } = await supabase
     .from('meetups')
     .insert({
@@ -168,6 +222,7 @@ export async function createMeetupAction(formData: FormData) {
       is_online: isOnline,
       organiser_id: user.id,
       max_attendees: maxAttendees,
+      slug,
     })
     .select('id')
     .single()
@@ -198,7 +253,7 @@ export async function createMeetupAction(formData: FormData) {
 export async function editMeetupAction(formData: FormData) {
   const { supabase, user } = await requireUser()
   const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
-  await requireOrganiser(supabase, meetupId, user.id)
+  await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
 
   const title = requireString(formData.get('title'), 'title').trim()
   const description = requireString(formData.get('description'), 'description').trim()
@@ -378,7 +433,7 @@ export async function arrangeNeedAction(formData: FormData) {
   const { supabase, user } = await requireUser()
   const needId = requireString(formData.get('need_id'), 'need_id')
   const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
-  await requireOrganiser(supabase, meetupId, user.id)
+  await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
 
   const { error } = await supabase
     .from('meetup_needs')
@@ -417,10 +472,12 @@ export async function createMeetupPostAction(formData: FormData) {
   if (content.length < 1 || content.length > MAX_CONTENT)
     throw new Error(`Post must be 1–${MAX_CONTENT} characters.`)
 
-  // Only organisers can pin posts.
-  const finalPinned = isPinned
-    ? (await requireOrganiser(supabase, meetupId, user.id)) !== null && isPinned
-    : false
+  // Only lead organisers and co-organisers can pin posts.
+  let finalPinned = false
+  if (isPinned) {
+    await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
+    finalPinned = true
+  }
 
   const hold = await computeMeetupPostHold(supabase, user.id, content)
 
@@ -572,7 +629,7 @@ export async function postOrganizerAnnouncementAction(formData: FormData) {
   const { supabase, user } = await requireUser()
   const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
   const content = requireString(formData.get('content'), 'content').trim()
-  await requireOrganiser(supabase, meetupId, user.id)
+  await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
 
   if (content.length < 1 || content.length > MAX_CONTENT)
     throw new Error('Announcement must be 1–20000 characters.')
@@ -595,7 +652,7 @@ export async function postDirectedMessageAction(formData: FormData) {
   const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
   const targetUsername = requireString(formData.get('target_username'), 'target_username')
   const body = requireString(formData.get('content'), 'content').trim()
-  await requireOrganiser(supabase, meetupId, user.id)
+  await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
 
   const content = `@${targetUsername} — ${body}`
   if (content.length > MAX_CONTENT) throw new Error('Message too long.')
@@ -608,6 +665,113 @@ export async function postDirectedMessageAction(formData: FormData) {
     is_pinned: false,
   })
   if (error) throw new Error(error.message)
+
+  revalidatePath(`/meetups/${meetupId}`)
+  revalidatePath(`/meetups/${meetupId}/manage`)
+}
+
+// ---------------------------------------------------------------------------
+// Co-organiser requests
+// ---------------------------------------------------------------------------
+
+export async function requestToHelpOrganiseAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+
+  const { data: meetup } = await supabase
+    .from('meetups')
+    .select('organiser_id, status')
+    .eq('id', meetupId)
+    .maybeSingle<{ organiser_id: string; status: string }>()
+  if (!meetup) throw new Error('Meetup not found.')
+  if (meetup.status === 'cancelled') throw new Error('This meetup has been cancelled.')
+  if (meetup.organiser_id === user.id)
+    throw new Error("You're already the organiser.")
+  if (await isCoOrganiser(supabase, meetupId, user.id))
+    throw new Error("You're already a helper on this meetup.")
+
+  const { error } = await supabase
+    .from('meetup_organiser_requests')
+    .insert({ meetup_id: meetupId, user_id: user.id })
+  if (error) {
+    // Duplicate = existing request row; treat as idempotent.
+    if (!error.message.includes('duplicate') && !error.message.includes('unique'))
+      throw new Error(error.message)
+  }
+
+  revalidatePath(`/meetups/${meetupId}`)
+  revalidatePath(`/meetups/${meetupId}/manage`)
+}
+
+export async function approveHelperAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+  const requestId = requireString(formData.get('request_id'), 'request_id')
+  await requireOrganiser(supabase, meetupId, user.id)
+
+  const { data: reqRow } = await supabase
+    .from('meetup_organiser_requests')
+    .select('user_id, status, meetup_id')
+    .eq('id', requestId)
+    .maybeSingle<{ user_id: string; status: string; meetup_id: string }>()
+  if (!reqRow) throw new Error('Request not found.')
+  if (reqRow.meetup_id !== meetupId) throw new Error('Request does not belong to this meetup.')
+  if (reqRow.status !== 'pending')
+    throw new Error('This request has already been decided.')
+
+  const { error: coErr } = await supabase
+    .from('meetup_co_organisers')
+    .insert({ meetup_id: meetupId, user_id: reqRow.user_id, added_by: user.id })
+  if (coErr && !coErr.message.includes('duplicate') && !coErr.message.includes('unique'))
+    throw new Error(coErr.message)
+
+  const { error: updErr } = await supabase
+    .from('meetup_organiser_requests')
+    .update({ status: 'approved', decided_at: new Date().toISOString(), decided_by: user.id })
+    .eq('id', requestId)
+  if (updErr) throw new Error(updErr.message)
+
+  revalidatePath(`/meetups/${meetupId}`)
+  revalidatePath(`/meetups/${meetupId}/manage`)
+}
+
+export async function declineHelperAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+  const requestId = requireString(formData.get('request_id'), 'request_id')
+  await requireOrganiser(supabase, meetupId, user.id)
+
+  const { error } = await supabase
+    .from('meetup_organiser_requests')
+    .update({ status: 'declined', decided_at: new Date().toISOString(), decided_by: user.id })
+    .eq('id', requestId)
+    .eq('meetup_id', meetupId)
+    .eq('status', 'pending')
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/meetups/${meetupId}`)
+  revalidatePath(`/meetups/${meetupId}/manage`)
+}
+
+export async function removeCoOrganiserAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+  const userIdToRemove = requireString(formData.get('user_id'), 'user_id')
+  await requireOrganiser(supabase, meetupId, user.id)
+
+  const { error: coErr } = await supabase
+    .from('meetup_co_organisers')
+    .delete()
+    .eq('meetup_id', meetupId)
+    .eq('user_id', userIdToRemove)
+  if (coErr) throw new Error(coErr.message)
+
+  // Delete any prior request row so they can re-apply cleanly.
+  await supabase
+    .from('meetup_organiser_requests')
+    .delete()
+    .eq('meetup_id', meetupId)
+    .eq('user_id', userIdToRemove)
 
   revalidatePath(`/meetups/${meetupId}`)
   revalidatePath(`/meetups/${meetupId}/manage`)

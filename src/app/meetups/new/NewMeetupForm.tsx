@@ -118,7 +118,7 @@ export default function NewMeetupForm() {
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-stone-700 font-medium">
           Maximum attendees{' '}
-          <span className="font-normal text-stone-400">(optional — leave blank for unlimited)</span>
+          <span className="font-normal text-stone-400">(optional, leave blank for unlimited)</span>
         </span>
         <input
           name="max_attendees"
@@ -128,6 +128,30 @@ export default function NewMeetupForm() {
           placeholder="e.g. 30"
           className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-32"
         />
+      </label>
+
+      {/* Short link */}
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-stone-700 font-medium">
+          Short link{' '}
+          <span className="font-normal text-stone-400">
+            (optional, leave blank to generate from the title)
+          </span>
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-stone-500 select-none">wrenbrmn.org/m/</span>
+          <input
+            name="slug"
+            type="text"
+            maxLength={40}
+            pattern="[A-Za-z0-9 \-]+"
+            placeholder="conscioussouls"
+            className="flex-1 rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+          />
+        </div>
+        <span className="text-xs text-stone-400">
+          Letters, numbers and dashes only. A number is appended if the link is already taken.
+        </span>
       </label>
 
       {/* Registration questions */}
