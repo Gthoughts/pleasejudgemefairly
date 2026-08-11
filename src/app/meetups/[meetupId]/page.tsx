@@ -133,44 +133,92 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
   } = await supabase.auth.getUser()
   if (!user) redirect(`/signin?next=/meetups/${meetupId}`)
 
-  const adminIds = await getAdminUserIds()
+  // Fire everything that doesn't depend on postIds in parallel. Under
+  // serverless + Supabase this is the biggest single latency win: what
+  // used to be ~9 sequential round-trips is now 1 round-trip's worth
+  // of wall time, plus the trailing ratings fetch.
+  const [
+    adminIds,
+    meetupRes,
+    registrationsRes,
+    needsRes,
+    postsRes,
+    mutesRes,
+    coRes,
+    myRequestRes,
+  ] = await Promise.all([
+    getAdminUserIds(),
+    supabase
+      .from('meetups')
+      .select(
+        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, users:organiser_id(username), meetup_questions(id, question_text, display_order)'
+      )
+      .eq('id', meetupId)
+      .maybeSingle<{
+        id: string
+        title: string
+        description: string
+        date_time: string
+        location: string
+        is_online: boolean
+        status: string
+        organiser_id: string
+        max_attendees: number | null
+        slug: string
+        users: { username: string } | null
+        meetup_questions: { id: string; question_text: string; display_order: number }[]
+      }>(),
+    supabase
+      .from('meetup_registrations')
+      .select('id, user_id, is_waitlist, users:user_id(username)')
+      .eq('meetup_id', meetupId)
+      .returns<{ id: string; user_id: string; is_waitlist: boolean; users: { username: string } | null }[]>(),
+    supabase
+      .from('meetup_needs')
+      .select('id, description, estimated_cost, status, offered_by, added_by, users_offered:offered_by(username), users_added:added_by(username)')
+      .eq('meetup_id', meetupId)
+      .order('created_at', { ascending: true })
+      .returns<{
+        id: string
+        description: string
+        estimated_cost: string | null
+        status: string
+        offered_by: string | null
+        added_by: string
+        users_offered: { username: string } | null
+        users_added: { username: string } | null
+      }[]>(),
+    supabase
+      .from('meetup_posts')
+      .select(
+        'id, meetup_id, parent_post_id, author_id, content, is_pinned, is_collapsed, hold_state, hold_reasons, created_at, updated_at, users:author_id(username)'
+      )
+      .eq('meetup_id', meetupId)
+      .order('created_at', { ascending: true })
+      .returns<MeetupPostRow[]>(),
+    supabase.from('mutes').select('muted_user_id').eq('user_id', user.id),
+    supabase
+      .from('meetup_co_organisers')
+      .select('user_id')
+      .eq('meetup_id', meetupId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('meetup_organiser_requests')
+      .select('status')
+      .eq('meetup_id', meetupId)
+      .eq('user_id', user.id)
+      .maybeSingle<{ status: 'pending' | 'approved' | 'declined' }>(),
+  ])
 
-  // Fetch meetup + questions.
-  const { data: meetup } = await supabase
-    .from('meetups')
-    .select(
-      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, users:organiser_id(username), meetup_questions(id, question_text, display_order)'
-    )
-    .eq('id', meetupId)
-    .maybeSingle<{
-      id: string
-      title: string
-      description: string
-      date_time: string
-      location: string
-      is_online: boolean
-      status: string
-      organiser_id: string
-      max_attendees: number | null
-      slug: string
-      users: { username: string } | null
-      meetup_questions: { id: string; question_text: string; display_order: number }[]
-    }>()
-
+  const meetup = meetupRes.data
   if (!meetup) notFound()
 
   const questions = (meetup.meetup_questions ?? []).sort(
     (a, b) => a.display_order - b.display_order
   )
 
-  // Fetch registrations (non-waitlist for count/list; all for current user check).
-  const { data: registrations } = await supabase
-    .from('meetup_registrations')
-    .select('id, user_id, is_waitlist, users:user_id(username)')
-    .eq('meetup_id', meetupId)
-    .returns<{ id: string; user_id: string; is_waitlist: boolean; users: { username: string } | null }[]>()
-
-  const allRegs = registrations ?? []
+  const allRegs = registrationsRes.data ?? []
   const confirmed = allRegs.filter((r) => !r.is_waitlist)
   const attendeeCount = confirmed.length
   const attendees = confirmed.map((r) => r.users?.username ?? 'unknown')
@@ -181,71 +229,27 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
     meetup.max_attendees !== null && attendeeCount >= meetup.max_attendees && !isRegistered
   const isCancelled = meetup.status === 'cancelled'
   const isLeadOrganiser = meetup.organiser_id === user.id
-
-  // Co-organiser lookup + this user's helper-request status.
-  const { data: coRow } = await supabase
-    .from('meetup_co_organisers')
-    .select('user_id')
-    .eq('meetup_id', meetupId)
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const isCoOrganiser = !!coRow
-
-  const { data: myRequest } = await supabase
-    .from('meetup_organiser_requests')
-    .select('status')
-    .eq('meetup_id', meetupId)
-    .eq('user_id', user.id)
-    .maybeSingle<{ status: 'pending' | 'approved' | 'declined' }>()
-  const helperStatus = myRequest?.status ?? null
+  const isCoOrganiser = !!coRes.data
+  const helperStatus = myRequestRes.data?.status ?? null
 
   const isOrganiser = isLeadOrganiser || isCoOrganiser
   const canRequestToHelp =
     !isCancelled && !isLeadOrganiser && !isCoOrganiser && helperStatus !== 'pending'
 
-  // Fetch needs.
-  const { data: needsData } = await supabase
-    .from('meetup_needs')
-    .select('id, description, estimated_cost, status, offered_by, added_by, users_offered:offered_by(username), users_added:added_by(username)')
-    .eq('meetup_id', meetupId)
-    .order('created_at', { ascending: true })
-    .returns<{
-      id: string
-      description: string
-      estimated_cost: string | null
-      status: string
-      offered_by: string | null
-      added_by: string
-      users_offered: { username: string } | null
-      users_added: { username: string } | null
-    }[]>()
-
-  const needs = needsData ?? []
+  const needs = needsRes.data ?? []
   const canAddNeeds = isOrganiser || (isRegistered && !isWaitlisted)
 
-  // Fetch discussion posts.
-  const { data: postRows } = await supabase
-    .from('meetup_posts')
-    .select(
-      'id, meetup_id, parent_post_id, author_id, content, is_pinned, is_collapsed, hold_state, hold_reasons, created_at, updated_at, users:author_id(username)'
-    )
-    .eq('meetup_id', meetupId)
-    .order('created_at', { ascending: true })
-    .returns<MeetupPostRow[]>()
+  const postRows = postsRes.data ?? []
+  const roots = buildTree(postRows)
 
-  const roots = buildTree(postRows ?? [])
-
-  // Fetch mutes and ratings for current user.
   const mutedIds = new Set<string>()
+  for (const m of mutesRes.data ?? [])
+    mutedIds.add((m as { muted_user_id: string }).muted_user_id)
+
+  // Ratings depends on postIds, so trails the parallel batch. One
+  // extra round-trip is fine — skipped entirely when there are no posts.
   const myRatings = new Map<string, 'helpful' | 'unhelpful'>()
-
-  const { data: mutes } = await supabase
-    .from('mutes')
-    .select('muted_user_id')
-    .eq('user_id', user.id)
-  for (const m of mutes ?? []) mutedIds.add((m as { muted_user_id: string }).muted_user_id)
-
-  const postIds = (postRows ?? []).map((p) => p.id)
+  const postIds = postRows.map((p) => p.id)
   if (postIds.length > 0) {
     const { data: ratingRows } = await supabase
       .from('ratings')
