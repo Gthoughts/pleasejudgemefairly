@@ -102,6 +102,12 @@ export default async function VideosPage({
     <>
       <VideosHeader />
       <div className="flex flex-col">
+        <div className="border-b border-amber-300 bg-amber-50 px-4 py-2 sm:px-6">
+          <p className="mx-auto max-w-4xl text-center text-sm text-amber-900">
+            Videos is under construction. Sound and swipe aren&rsquo;t working
+            properly yet, thanks for bearing with us.
+          </p>
+        </div>
         <div className="border-b border-stone-200 bg-stone-50">
           <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-2">
