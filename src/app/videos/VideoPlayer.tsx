@@ -489,7 +489,7 @@ export default function VideoPlayer({
           that YouTube / TikTok / Vimeo's own unmute button (which
           sits there on their embed players) remains tappable. */}
       <div
-        className="absolute inset-0 z-10 touch-none"
+        className="absolute inset-0 z-10 touch-pan-y"
         style={{
           background: 'transparent',
           clipPath:

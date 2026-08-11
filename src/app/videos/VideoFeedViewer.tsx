@@ -57,6 +57,27 @@ export default function VideoFeedViewer({
     return () => obs.disconnect()
   }, [videos.length])
 
+  // Fill the space between the top of this container and the bottom of
+  // the viewport. The old CSS-var approach was never populated so the
+  // scroller was a full 100vh, spilling below the fold. Measuring at
+  // mount + on resize keeps snap points aligned with the visible slot
+  // no matter how much header sits above.
+  useEffect(() => {
+    const root = containerRef.current
+    if (!root) return
+    const update = () => {
+      const top = root.getBoundingClientRect().top
+      root.style.height = `${window.innerHeight - top}px`
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
+  }, [])
+
   if (videos.length === 0) {
     return (
       <div className="mx-auto max-w-md p-8 text-center text-stone-500">
@@ -68,7 +89,7 @@ export default function VideoFeedViewer({
   return (
     <div
       ref={containerRef}
-      className="h-[calc(100vh-var(--videos-header-offset,0px))] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black"
+      className="h-svh snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black"
     >
       {videos.map((v) => {
         const state = perVideoState[v.id] ?? {
