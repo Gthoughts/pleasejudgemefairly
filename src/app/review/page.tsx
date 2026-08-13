@@ -12,6 +12,7 @@ import {
   releaseHeldResourceAdminAction,
   confirmBrokenLinkAction,
 } from './actions'
+import { approveCipherAction, rejectCipherAction } from '../code/actions'
 import VideoTaxonomyReviewItem from './VideoTaxonomyReviewItem'
 import VideoReportReviewItem from './VideoReportReviewItem'
 
@@ -405,11 +406,138 @@ export default async function ReviewPage() {
     }))
   }
 
+  // ------------------------------------------------------------------
+  // Pending code submissions (admin-only). Uses the service client so
+  // it can read pending rows regardless of RLS.
+  // ------------------------------------------------------------------
+  type PendingCipher = {
+    id: string
+    slug: string
+    title: string
+    summary: string
+    cipher_text: string
+    animation_slug: string | null
+    submitter_id: string
+    created_at: string
+  }
+  let pendingCiphers: PendingCipher[] = []
+  const pendingCipherSubmitters = new Map<string, string>()
+  if (userIsAdmin) {
+    const service = createServiceClient()
+    const { data: cRows } = await service
+      .from('code_ciphers')
+      .select('id, slug, title, summary, cipher_text, animation_slug, submitter_id, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .returns<PendingCipher[]>()
+    pendingCiphers = cRows ?? []
+    if (pendingCiphers.length > 0) {
+      const ids = Array.from(new Set(pendingCiphers.map((c) => c.submitter_id)))
+      const { data: uRows } = await service
+        .from('users')
+        .select('id, username')
+        .in('id', ids)
+      for (const u of uRows ?? []) {
+        pendingCipherSubmitters.set(
+          (u as { id: string }).id,
+          (u as { username: string }).username
+        )
+      }
+    }
+  }
+
   return (
     <>
       <DiscussHeader />
       <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <div className="mx-auto max-w-2xl space-y-14">
+          {/* ----------------------------------------------------------------
+              Code submissions (admin-only)
+          ---------------------------------------------------------------- */}
+          {userIsAdmin && (
+            <section>
+              <h2 className="text-xl font-semibold">Code submissions</h2>
+              <p className="mt-1 text-sm text-stone-600">
+                Broken codes people have submitted. Approving publishes to
+                /code and (optionally) links the animation folder under
+                public/code-assets/.
+              </p>
+
+              {pendingCiphers.length === 0 ? (
+                <p className="mt-4 text-sm text-stone-500">
+                  Nothing pending.
+                </p>
+              ) : (
+                <ul className="mt-4 divide-y divide-stone-200 border-y border-stone-200">
+                  {pendingCiphers.map((c) => {
+                    const submitter =
+                      pendingCipherSubmitters.get(c.submitter_id) ?? 'unknown'
+                    return (
+                      <li key={c.id} className="py-4">
+                        <p className="text-sm font-medium text-stone-800">
+                          {c.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-stone-500">
+                          {c.summary}
+                        </p>
+                        <pre className="mt-2 whitespace-pre-wrap break-words rounded bg-stone-50 border border-stone-200 p-2 text-xs text-stone-700 font-mono">
+                          {c.cipher_text}
+                        </pre>
+                        <p className="mt-1 text-xs text-stone-400">
+                          by {submitter} · {formatWhen(c.created_at)} · slug{' '}
+                          <code>{c.slug}</code>
+                        </p>
+
+                        <form
+                          action={approveCipherAction}
+                          className="mt-3 flex flex-wrap items-end gap-2"
+                        >
+                          <input type="hidden" name="cipher_id" value={c.id} />
+                          <label className="flex flex-col gap-1 text-xs">
+                            <span className="text-stone-500">
+                              Animation slug{' '}
+                              <span className="text-stone-400">
+                                (folder under /public/code-assets, optional)
+                              </span>
+                            </span>
+                            <input
+                              type="text"
+                              name="animation_slug"
+                              defaultValue={c.animation_slug ?? ''}
+                              placeholder="shugborough"
+                              pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                              className="w-64 rounded border border-stone-300 px-2 py-1 text-sm"
+                            />
+                          </label>
+                          <button
+                            type="submit"
+                            className="rounded bg-stone-900 text-stone-50 px-3 py-1.5 text-xs hover:bg-stone-700"
+                          >
+                            Approve &amp; publish
+                          </button>
+                        </form>
+
+                        <form action={rejectCipherAction} className="mt-2">
+                          <input type="hidden" name="cipher_id" value={c.id} />
+                          <button
+                            type="submit"
+                            className="text-xs text-stone-500 underline hover:text-red-700"
+                            onClick={(e) => {
+                              if (!confirm('Reject this submission?'))
+                                e.preventDefault()
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </form>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+
           {/* ----------------------------------------------------------------
               Section 1: Held posts
           ---------------------------------------------------------------- */}
