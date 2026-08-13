@@ -83,7 +83,7 @@ export default async function CodeDetailPage(props: PageProps<'/code/[slug]'>) {
               <h2 className="text-sm font-medium text-stone-700">How it reads</h2>
               <div className="mt-2 aspect-video overflow-hidden rounded border border-stone-800 bg-black">
                 <iframe
-                  src={`/code-assets/${cipher.animation_slug}/`}
+                  src={`/code-assets/${cipher.animation_slug}/index.html`}
                   title={`${cipher.title} animation`}
                   className="h-full w-full"
                   allow="autoplay"
