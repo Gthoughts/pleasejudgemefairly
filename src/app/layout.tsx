@@ -4,6 +4,7 @@ import './globals.css'
 import { createClient } from '@/lib/supabase/server'
 import { getInboxUnreadCount } from '@/lib/inbox'
 import PushBadgeSetup from '@/components/PushBadgeSetup'
+import ChatBubbleButton from '@/components/ChatBubbleButton'
 
 const fraunces = Fraunces({
   variable: '--font-fraunces',
@@ -44,6 +45,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <ChatBubbleButton />
         <PushBadgeSetup signedIn={user !== null} unreadCount={unreadCount} />
       </body>
     </html>
