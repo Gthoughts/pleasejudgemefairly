@@ -20,7 +20,6 @@ const NAV: NavItem[] = [
   { href: '/videos', label: 'Videos' },
   { href: '/meetups', label: 'Meetups' },
   { href: '/projects', label: 'Projects' },
-  { href: '/code', label: 'Code' },
   { href: '/thisisme', label: 'This is me' },
   { href: '/about', label: 'How This Works' },
   { href: '/review', label: 'Review queue', adminOnly: true },

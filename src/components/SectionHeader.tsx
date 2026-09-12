@@ -17,7 +17,6 @@ type Current =
   | 'videos'
   | 'meetups'
   | 'projects'
-  | 'code'
   | 'thisisme'
   | 'inbox'
   | 'review'
@@ -35,7 +34,6 @@ const ALL_NAV: NavItem[] = [
   { key: 'videos', href: '/videos', label: 'Videos' },
   { key: 'meetups', href: '/meetups', label: 'Meetups' },
   { key: 'projects', href: '/projects', label: 'Projects' },
-  { key: 'code', href: '/code', label: 'Code' },
   { key: 'thisisme', href: '/thisisme', label: 'This is me' },
   { key: 'about', href: '/about', label: 'How This Works' },
   { key: 'review', href: '/review', label: 'Review queue', adminOnly: true },
