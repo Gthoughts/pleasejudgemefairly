@@ -6,6 +6,7 @@ import ConfirmSubmitButton from '@/components/ConfirmSubmitButton'
 import { createClient } from '@/lib/supabase/server'
 import { penceToPounds } from '@/lib/money'
 import OnlineEventToggle from '../OnlineEventToggle'
+import AddPollForm from '../AddPollForm'
 import {
   editMeetupAction,
   cancelMeetupAction,
@@ -17,6 +18,7 @@ import {
   approveHelperAction,
   declineHelperAction,
   removeCoOrganiserAction,
+  deletePollAction,
 } from '../../actions'
 
 function formatMeetupDateLocal(iso: string): string {
@@ -30,6 +32,12 @@ const statusLabel: Record<string, string> = {
   needed: 'Needed',
   offered: 'Offered',
   arranged: 'Arranged',
+}
+
+const pollTypeLabel: Record<string, string> = {
+  date: 'Dates',
+  location: 'Locations',
+  custom: 'Other',
 }
 
 export default async function ManageMeetupPage(
@@ -46,7 +54,7 @@ export default async function ManageMeetupPage(
   const { data: meetup } = await supabase
     .from('meetups')
     .select(
-      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, postcode, has_fee, fee_normal_pence, fee_discount_pence, meetup_questions(id, question_text, display_order)'
+      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, postcode, has_fee, fee_normal_pence, fee_discount_pence, meetup_questions(id, question_text, display_order), meetup_polls(id, title, poll_type, display_order, meetup_poll_options(id, label))'
     )
     .eq('id', meetupId)
     .maybeSingle<{
@@ -64,6 +72,13 @@ export default async function ManageMeetupPage(
       fee_normal_pence: number | null
       fee_discount_pence: number | null
       meetup_questions: { id: string; question_text: string; display_order: number }[]
+      meetup_polls: {
+        id: string
+        title: string
+        poll_type: string
+        display_order: number
+        meetup_poll_options: { id: string; label: string }[]
+      }[]
     }>()
 
   if (!meetup) notFound()
@@ -81,6 +96,9 @@ export default async function ManageMeetupPage(
   }
 
   const questions = (meetup.meetup_questions ?? []).sort(
+    (a, b) => a.display_order - b.display_order
+  )
+  const polls = (meetup.meetup_polls ?? []).sort(
     (a, b) => a.display_order - b.display_order
   )
   const isCancelled = meetup.status === 'cancelled'
@@ -400,6 +418,54 @@ export default async function ManageMeetupPage(
                   Add
                 </button>
               </form>
+            )}
+          </section>
+
+          {/* ---- Polls / voting ---- */}
+          <section>
+            <h2 className="text-xl font-semibold">Polls / voting</h2>
+            <p className="mt-1 text-sm text-stone-500">
+              Let attendees vote on dates, locations or anything else. Votes
+              appear on the meetup page.
+            </p>
+
+            {polls.length === 0 ? (
+              <p className="mt-4 text-sm text-stone-500">No polls yet.</p>
+            ) : (
+              <ul className="mt-4 divide-y divide-stone-200 border-y border-stone-200">
+                {polls.map((poll) => (
+                  <li key={poll.id} className="py-4 flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-stone-800">{poll.title}</p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {pollTypeLabel[poll.poll_type] ?? poll.poll_type}
+                      </p>
+                      <ul className="mt-2 list-disc pl-5 text-sm text-stone-600">
+                        {(poll.meetup_poll_options ?? []).map((opt) => (
+                          <li key={opt.id}>{opt.label}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <form action={deletePollAction} className="shrink-0">
+                      <input type="hidden" name="meetup_id" value={meetupId} />
+                      <input type="hidden" name="poll_id" value={poll.id} />
+                      <ConfirmSubmitButton
+                        confirmMessage="Delete this poll and its votes?"
+                        className="text-xs text-stone-400 underline hover:text-red-700"
+                      >
+                        Delete poll
+                      </ConfirmSubmitButton>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!isCancelled && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-stone-700">Add a poll</h3>
+                <AddPollForm meetupId={meetupId} />
+              </div>
             )}
           </section>
 

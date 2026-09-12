@@ -516,6 +516,77 @@ export async function voteMeetupPollAction(formData: FormData) {
   revalidatePath(`/meetups/${meetupId}`)
 }
 
+// Add a single poll (with its options) to an existing meetup. Organiser or
+// helper only. Mirrors the poll parsing/validation used in createMeetupAction.
+export async function addPollAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+  await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
+
+  const MAX_POLL_OPTIONS = 8
+
+  const title = (formData.get('poll_title') as string | null)?.trim() ?? ''
+  if (title.length < 1 || title.length > 200)
+    throw new Error('Poll question must be 1–200 characters.')
+
+  const typeRaw = formData.get('poll_type')
+  const pollType =
+    typeRaw === 'date' || typeRaw === 'location' || typeRaw === 'custom' ? typeRaw : 'custom'
+
+  const optionLabels = (formData.getAll('poll_option') as string[])
+    .map((o) => (typeof o === 'string' ? o.trim() : ''))
+    .filter((o) => o.length > 0)
+  if (optionLabels.length < 2) throw new Error('Add at least two options.')
+  for (const label of optionLabels) {
+    if (label.length > 200) throw new Error('Poll option must be 1–200 characters.')
+  }
+  if (optionLabels.length > MAX_POLL_OPTIONS)
+    throw new Error(`A poll can have at most ${MAX_POLL_OPTIONS} options.`)
+
+  // display_order = current number of polls for this meetup.
+  const { count } = await supabase
+    .from('meetup_polls')
+    .select('id', { count: 'exact', head: true })
+    .eq('meetup_id', meetupId)
+
+  const { data: poll, error: pollErr } = await supabase
+    .from('meetup_polls')
+    .insert({
+      meetup_id: meetupId,
+      title,
+      poll_type: pollType,
+      display_order: count ?? 0,
+    })
+    .select('id')
+    .single()
+  if (pollErr) throw new Error(pollErr.message)
+
+  const optionRows = optionLabels.map((label, idx) => ({
+    poll_id: poll.id,
+    label,
+    display_order: idx,
+  }))
+  const { error: optErr } = await supabase.from('meetup_poll_options').insert(optionRows)
+  if (optErr) throw new Error(optErr.message)
+
+  revalidatePath(`/meetups/${meetupId}`)
+  revalidatePath(`/meetups/${meetupId}/manage`)
+}
+
+// Delete a poll (options & votes cascade via FK). Organiser or helper only.
+export async function deletePollAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+  const pollId = requireString(formData.get('poll_id'), 'poll_id')
+  await requireLeadOrCoOrganiser(supabase, meetupId, user.id)
+
+  const { error } = await supabase.from('meetup_polls').delete().eq('id', pollId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/meetups/${meetupId}`)
+  revalidatePath(`/meetups/${meetupId}/manage`)
+}
+
 // ---------------------------------------------------------------------------
 // Needs
 // ---------------------------------------------------------------------------
