@@ -1,15 +1,11 @@
 import Link from 'next/link'
 import SiteHeader from '@/components/SiteHeader'
 import SiteFooter from '@/components/SiteFooter'
-import HomeVideo from './HomeVideo'
 
 // Homepage: a full-screen background image with the content layered on top —
-// a small "It only takes One" line, a small YouTube video, a quiet link into
-// the discussion, an install box, and a small dedication. No nav clutter, no
-// popups, no cookie banner.
-//
-// Sasquatch Music Festival 2009 "first follower" clip.
-const HOMEPAGE_VIDEO_ID = 'GA8z7f7a2Pk'
+// a small "It only takes One" line, a quiet link into the discussion, an
+// install box, and a small dedication. No nav clutter, no popups, no cookie
+// banner.
 
 export default function HomePage() {
   return (
@@ -28,11 +24,6 @@ export default function HomePage() {
         <p className="mb-4 self-start text-left text-sm text-stone-700 tracking-wide">
           It only takes One
         </p>
-
-        {/* Small video with a dismissible cover image, aligned left */}
-        <div className="w-full max-w-xs self-start">
-          <HomeVideo videoId={HOMEPAGE_VIDEO_ID} />
-        </div>
 
         <p className="mt-16 text-center text-lg sm:text-xl text-stone-900 font-medium drop-shadow-sm">
           You found us. We&rsquo;re so glad you did.
