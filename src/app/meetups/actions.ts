@@ -8,6 +8,7 @@ import { FILTER_CONFIG } from '@/lib/filters/config'
 import { RATING_CONFIG } from '@/lib/rating/config'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { slugify, findFreeSlug, SLUG_MIN, SLUG_MAX, SLUG_PATTERN } from '@/lib/meetup-slug'
+import { geocodePostcode } from '@/lib/geocode'
 
 const MAX_CONTENT = 20000
 
@@ -196,6 +197,10 @@ export async function createMeetupAction(formData: FormData) {
   if (maxAttendees !== null && (isNaN(maxAttendees) || maxAttendees < 1))
     throw new Error('Maximum attendees must be a positive number.')
 
+  const postcodeRaw = (formData.get('postcode') as string | null)?.trim() ?? ''
+  if (postcodeRaw.length === 0) throw new Error('Postcode is required (or enter N/A).')
+  const geo = await geocodePostcode(postcodeRaw)
+
   const slugRaw = (formData.get('slug') as string | null)?.trim() ?? ''
   let base: string | null
   if (slugRaw.length > 0) {
@@ -223,6 +228,9 @@ export async function createMeetupAction(formData: FormData) {
       organiser_id: user.id,
       max_attendees: maxAttendees,
       slug,
+      postcode: geo ? geo.postcode : postcodeRaw,
+      latitude: geo ? geo.latitude : null,
+      longitude: geo ? geo.longitude : null,
     })
     .select('id')
     .single()
@@ -328,6 +336,10 @@ export async function editMeetupAction(formData: FormData) {
   if (isNaN(dateTime.getTime())) throw new Error('Invalid date and time.')
   if (location.length < 1) throw new Error('Location is required.')
 
+  const postcodeRaw = (formData.get('postcode') as string | null)?.trim() ?? ''
+  if (postcodeRaw.length === 0) throw new Error('Postcode is required (or enter N/A).')
+  const geo = await geocodePostcode(postcodeRaw)
+
   const { error } = await supabase
     .from('meetups')
     .update({
@@ -337,6 +349,9 @@ export async function editMeetupAction(formData: FormData) {
       location,
       is_online: isOnline,
       max_attendees: maxAttendees,
+      postcode: geo ? geo.postcode : postcodeRaw,
+      latitude: geo ? geo.latitude : null,
+      longitude: geo ? geo.longitude : null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', meetupId)

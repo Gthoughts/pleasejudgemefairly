@@ -10,6 +10,7 @@ import PollsSection, { type Poll } from './PollsSection'
 import MeetupPostItem from './MeetupPostItem'
 import MeetupRootReplyForm from './MeetupRootReplyForm'
 import CopyShortLinkButton from './CopyShortLinkButton'
+import LocationMap from './LocationMap'
 import {
   addNeedAction,
   offerNeedAction,
@@ -152,7 +153,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
     supabase
       .from('meetups')
       .select(
-        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, users:organiser_id(username), meetup_questions(id, question_text, display_order), meetup_polls(id, title, poll_type, display_order, meetup_poll_options(id, label, display_order, meetup_poll_votes(user_id)))'
+        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, latitude, longitude, postcode, users:organiser_id(username), meetup_questions(id, question_text, display_order), meetup_polls(id, title, poll_type, display_order, meetup_poll_options(id, label, display_order, meetup_poll_votes(user_id)))'
       )
       .eq('id', meetupId)
       .maybeSingle<{
@@ -166,6 +167,9 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
         organiser_id: string
         max_attendees: number | null
         slug: string
+        latitude: number | null
+        longitude: number | null
+        postcode: string | null
         users: { username: string } | null
         meetup_questions: { id: string; question_text: string; display_order: number }[]
         meetup_polls: {
@@ -383,6 +387,19 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
             </dl>
 
             <p className="mt-5 text-sm text-stone-700 whitespace-pre-wrap break-words">{meetup.description}</p>
+
+            {meetup.latitude != null && meetup.longitude != null && (
+              <div className="mt-6">
+                <h2 className="text-sm font-medium text-stone-500">Where</h2>
+                <div className="mt-2">
+                  <LocationMap
+                    latitude={meetup.latitude}
+                    longitude={meetup.longitude}
+                    location={meetup.location}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="mt-8">
               <RegistrationSection

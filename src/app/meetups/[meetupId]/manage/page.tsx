@@ -44,7 +44,7 @@ export default async function ManageMeetupPage(
   const { data: meetup } = await supabase
     .from('meetups')
     .select(
-      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, meetup_questions(id, question_text, display_order)'
+      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, postcode, meetup_questions(id, question_text, display_order)'
     )
     .eq('id', meetupId)
     .maybeSingle<{
@@ -57,6 +57,7 @@ export default async function ManageMeetupPage(
       status: string
       organiser_id: string
       max_attendees: number | null
+      postcode: string | null
       meetup_questions: { id: string; question_text: string; display_order: number }[]
     }>()
 
@@ -452,6 +453,22 @@ export default async function ManageMeetupPage(
                     defaultValue={meetup.location}
                     className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
                   />
+                </label>
+
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-stone-700 font-medium">Postcode</span>
+                  <input
+                    name="postcode"
+                    type="text"
+                    required
+                    maxLength={12}
+                    defaultValue={meetup.postcode ?? ''}
+                    placeholder="e.g. M1 1AE"
+                    className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-48"
+                  />
+                  <span className="text-xs text-stone-400">
+                    Used to show a small map. Enter N/A if unknown or it&rsquo;s an online event.
+                  </span>
                 </label>
 
                 <OnlineEventToggle defaultOnline={meetup.is_online} />

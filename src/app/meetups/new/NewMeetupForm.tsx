@@ -157,6 +157,22 @@ export default function NewMeetupForm() {
         />
       </label>
 
+      {/* Postcode */}
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-stone-700 font-medium">Postcode</span>
+        <input
+          name="postcode"
+          type="text"
+          required
+          maxLength={12}
+          placeholder="e.g. M1 1AE"
+          className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-48"
+        />
+        <span className="text-xs text-stone-400">
+          Used to show a small map. Enter N/A if unknown or it&rsquo;s an online event.
+        </span>
+      </label>
+
       {/* Online toggle */}
       <div className="flex items-center gap-3 text-sm">
         <button
