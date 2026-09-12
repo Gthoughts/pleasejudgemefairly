@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import MeetupsHeader from '@/components/MeetupsHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
+import OnlineEventToggle from '../OnlineEventToggle'
 import {
   editMeetupAction,
   cancelMeetupAction,
@@ -453,29 +454,7 @@ export default async function ManageMeetupPage(
                   />
                 </label>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    name="is_online_check"
-                    id="is_online_check"
-                    defaultChecked={meetup.is_online}
-                    onChange={(e) => {
-                      const hiddenInput = e.currentTarget.form?.querySelector(
-                        'input[name="is_online"]'
-                      ) as HTMLInputElement | null
-                      if (hiddenInput) hiddenInput.value = e.currentTarget.checked ? 'true' : 'false'
-                    }}
-                    className="h-4 w-4"
-                  />
-                  <input
-                    type="hidden"
-                    name="is_online"
-                    defaultValue={meetup.is_online ? 'true' : 'false'}
-                  />
-                  <label htmlFor="is_online_check" className="text-stone-700">
-                    Online event
-                  </label>
-                </div>
+                <OnlineEventToggle defaultOnline={meetup.is_online} />
 
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="text-stone-700 font-medium">
