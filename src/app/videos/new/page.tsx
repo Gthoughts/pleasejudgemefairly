@@ -34,7 +34,7 @@ export default async function NewVideoPage() {
       <main className="mx-auto max-w-lg px-4 py-8 sm:px-6">
         <h1 className="text-xl font-semibold">Add a video</h1>
         <p className="mt-1 text-sm text-stone-600">
-          Paste a link from anywhere, or upload once storage comes online. No
+          Upload your own short video (portrait works best, max 50MB). No
           usernames appear on videos; only your comments carry your name.
         </p>
         <div className="mt-6">
