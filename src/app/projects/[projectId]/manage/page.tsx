@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import ProjectsHeader from '@/components/ProjectsHeader'
 import SiteFooter from '@/components/SiteFooter'
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminUserIds } from '@/lib/admin'
 import { AVAILABILITY_LABEL, formatGBP, type Availability } from '@/lib/projects'
@@ -416,16 +417,12 @@ export default async function ManageProjectPage(
                           value={projectId}
                         />
                         <input type="hidden" name="update_id" value={u.id} />
-                        <button
-                          type="submit"
+                        <ConfirmSubmitButton
+                          confirmMessage="Delete this update and all its replies?"
                           className="text-xs text-stone-400 underline hover:text-red-700"
-                          onClick={(e) => {
-                            if (!confirm('Delete this update and all its replies?'))
-                              e.preventDefault()
-                          }}
                         >
                           Delete
-                        </button>
+                        </ConfirmSubmitButton>
                       </form>
                     </li>
                   ))}

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import MeetupsHeader from '@/components/MeetupsHeader'
 import SiteFooter from '@/components/SiteFooter'
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 import { penceToPounds } from '@/lib/money'
@@ -553,15 +554,12 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
                               <form action={deleteNeedAction}>
                                 <input type="hidden" name="need_id" value={need.id} />
                                 <input type="hidden" name="meetup_id" value={meetupId} />
-                                <button
-                                  type="submit"
+                                <ConfirmSubmitButton
+                                  confirmMessage="Remove this item?"
                                   className="text-xs text-stone-400 underline hover:text-red-700"
-                                  onClick={(e) => {
-                                    if (!confirm('Remove this item?')) e.preventDefault()
-                                  }}
                                 >
                                   Remove
-                                </button>
+                                </ConfirmSubmitButton>
                               </form>
                             </div>
                           )}

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import MeetupsHeader from '@/components/MeetupsHeader'
 import SiteFooter from '@/components/SiteFooter'
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton'
 import { createClient } from '@/lib/supabase/server'
 import { penceToPounds } from '@/lib/money'
 import OnlineEventToggle from '../OnlineEventToggle'
@@ -361,15 +362,12 @@ export default async function ManageMeetupPage(
                       <form action={deleteNeedAction}>
                         <input type="hidden" name="need_id" value={need.id} />
                         <input type="hidden" name="meetup_id" value={meetupId} />
-                        <button
-                          type="submit"
+                        <ConfirmSubmitButton
+                          confirmMessage="Remove this item?"
                           className="text-xs text-stone-400 underline hover:text-red-700"
-                          onClick={(e) => {
-                            if (!confirm('Remove this item?')) e.preventDefault()
-                          }}
                         >
                           Remove
-                        </button>
+                        </ConfirmSubmitButton>
                       </form>
                     </div>
                   </li>
@@ -626,15 +624,12 @@ export default async function ManageMeetupPage(
                         <form action={removeCoOrganiserAction}>
                           <input type="hidden" name="meetup_id" value={meetupId} />
                           <input type="hidden" name="user_id" value={c.user_id} />
-                          <button
-                            type="submit"
+                          <ConfirmSubmitButton
+                            confirmMessage="Remove this helper?"
                             className="text-xs text-stone-500 underline hover:text-red-700"
-                            onClick={(e) => {
-                              if (!confirm('Remove this helper?')) e.preventDefault()
-                            }}
                           >
                             Remove
-                          </button>
+                          </ConfirmSubmitButton>
                         </form>
                       </li>
                     ))}
@@ -654,20 +649,12 @@ export default async function ManageMeetupPage(
               </p>
               <form action={cancelMeetupAction} className="mt-4">
                 <input type="hidden" name="meetup_id" value={meetupId} />
-                <button
-                  type="submit"
+                <ConfirmSubmitButton
+                  confirmMessage="Cancel this meetup? A pinned announcement will be posted in the discussion and this cannot be undone."
                   className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 hover:border-red-500 hover:text-red-900"
-                  onClick={(e) => {
-                    if (
-                      !confirm(
-                        'Cancel this meetup? A pinned announcement will be posted in the discussion and this cannot be undone.'
-                      )
-                    )
-                      e.preventDefault()
-                  }}
                 >
                   Cancel this meetup
-                </button>
+                </ConfirmSubmitButton>
               </form>
             </section>
           )}
