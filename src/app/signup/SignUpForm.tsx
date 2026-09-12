@@ -25,6 +25,27 @@ export default function SignUpForm() {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
 
+    // Check the username isn't already taken, so we can show a friendly
+    // message instead of a cryptic duplicate-key error from the DB trigger.
+    // (RLS blocks anon reads of public.users, so we use a SECURITY DEFINER
+    // RPC that only returns a boolean.)
+    try {
+      const { data: available, error: checkError } = await supabase.rpc(
+        'username_available',
+        { candidate: username }
+      )
+      if (!checkError && available === false) {
+        setError(
+          'That username is already taken — please choose a different one.'
+        )
+        setSubmitting(false)
+        return
+      }
+    } catch {
+      // If the check itself fails, fall through and let signup proceed;
+      // the hardened DB trigger will still avoid a hard failure.
+    }
+
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
