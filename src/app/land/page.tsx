@@ -3,7 +3,7 @@ import SiteFooter from '@/components/SiteFooter'
 import LandMap from './LandMap'
 
 export const metadata = {
-  title: 'Land — a place for you',
+  title: 'Land, a place for you',
   description:
     'An honest, plain-English guide to adverse possession in the UK: what it really takes to claim unregistered or neglected land, the real forms and costs, and the risks.',
 }
@@ -18,17 +18,19 @@ export default function LandPage() {
           <p className="mt-4 text-stone-700 text-base leading-relaxed">
             There is a real, legal route by which someone can end up owning
             land they never bought. It is called <strong>adverse
-            possession</strong>. It is genuine — but it is slow, uncertain, and
+            possession</strong>. It is genuine, but it is slow, uncertain, and
             widely misunderstood. This page explains it honestly: what it
             actually takes, the real forms and costs, and the parts most people
             get wrong. Read the whole thing before you act on any of it.
           </p>
 
-          {/* Honest reality banner */}
-          <div className="mt-6 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <p className="font-medium">Read this first.</p>
-            <p className="mt-1">
-              Almost all land in the UK is owned by someone — a person, a
+          {/* Honest reality banner, click to read */}
+          <details className="mt-6 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <summary className="cursor-pointer font-medium list-none [&::-webkit-details-marker]:hidden">
+              Be realistic but committed (tap to read)
+            </summary>
+            <p className="mt-2">
+              Almost all land in the UK is owned by someone: a person, a
               company, a council, or the Crown. &ldquo;Unregistered&rdquo; does
               not mean &ldquo;unowned&rdquo;. There is no public list of free
               land to grab, and occupying land you have no right to can be
@@ -36,7 +38,7 @@ export default function LandPage() {
               failure, not a shortcut to a free plot. For any specific claim,
               get proper legal advice.
             </p>
-          </div>
+          </details>
 
           {/* 1. What it is */}
           <section className="mt-12">
@@ -45,31 +47,31 @@ export default function LandPage() {
             </h2>
             <div className="mt-4 space-y-4 text-stone-700 text-base leading-relaxed">
               <p>
-                If you occupy land as though it were your own — openly,
-                exclusively, without the owner&rsquo;s permission — for long
+                If you occupy land as though it were your own, openly,
+                exclusively, without the owner&rsquo;s permission, for long
                 enough, the law may let you apply to be registered as its
                 owner. You have to prove all of the following, continuously,
                 for the whole period:
               </p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>
-                  <strong>Factual possession</strong> — you physically control
+                  <strong>Factual possession</strong>, you physically control
                   the land (e.g. you have fenced it, maintained it, used it).
                 </li>
                 <li>
-                  <strong>Intention to possess</strong> — you mean to hold it
+                  <strong>Intention to possess</strong>, you mean to hold it
                   as your own, shown by what you actually do on it.
                 </li>
                 <li>
-                  <strong>Open and obvious</strong> — your use is visible to
+                  <strong>Open and obvious</strong>, your use is visible to
                   anyone, including the owner. Secret use does not count.
                 </li>
                 <li>
-                  <strong>Exclusive</strong> — you exclude others, the true
+                  <strong>Exclusive</strong>, you exclude others, the true
                   owner included.
                 </li>
                 <li>
-                  <strong>Without consent</strong> — if the owner gave you
+                  <strong>Without consent</strong>, if the owner gave you
                   permission, the clock never starts (or stops the moment they
                   do).
                 </li>
@@ -89,19 +91,19 @@ export default function LandPage() {
               </p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>
-                  <strong>Registered land — 10 years.</strong> Under the Land
+                  <strong>Registered land, 10 years.</strong> Under the Land
                   Registration Act 2002 you can apply after 10 years&rsquo;
-                  adverse possession. But see the catch below — this is the hard
+                  adverse possession. But see the catch below, this is the hard
                   case.
                 </li>
                 <li>
-                  <strong>Unregistered land — 12 years.</strong> Under the
+                  <strong>Unregistered land, 12 years.</strong> Under the
                   Limitation Act 1980, after 12 years the previous owner&rsquo;s
                   right to evict you is generally extinguished, and you can
                   apply for first registration.
                 </li>
                 <li>
-                  <strong>Crown foreshore — 60 years.</strong> Special, much
+                  <strong>Crown foreshore, 60 years.</strong> Special, much
                   longer rules apply to Crown land such as the foreshore.
                 </li>
               </ul>
@@ -119,7 +121,7 @@ export default function LandPage() {
                 not mean the land is yours. When you apply, HM Land Registry
                 <strong> notifies the registered owner</strong>. They then have
                 a window (65 working days) to object. If they object, your
-                application is normally <strong>rejected</strong> — and you only
+                application is normally <strong>rejected</strong>, and you only
                 get a further chance if you stay in possession another two years
                 and they still take no steps to remove you. In practice, a
                 paying-attention owner can defeat a registered-land claim simply
@@ -129,12 +131,12 @@ export default function LandPage() {
               <p>
                 This is why genuine adverse possession usually involves small
                 strips of <em>unregistered</em> land, or boundary land that has
-                been used for decades — not &ldquo;claiming a field&rdquo;.
+                been used for decades, not &ldquo;claiming a field&rdquo;.
               </p>
             </div>
           </section>
 
-          {/* 4. Researching a plot — real tools + map */}
+          {/* 4. Researching a plot, real tools + map */}
           <section className="mt-12">
             <h2 className="text-xl font-semibold text-stone-900">
               Researching a plot
@@ -143,7 +145,7 @@ export default function LandPage() {
               <p>
                 There is <strong>no database of unowned land</strong>. Finding a
                 genuine candidate is legwork, not a search query. The tools
-                below are the real, free ones — they help you explore land and
+                below are the real, free ones, they help you explore land and
                 check ownership, but none of them hands you a list of free
                 plots.
               </p>
@@ -182,7 +184,7 @@ export default function LandPage() {
                     Overpass Turbo
                   </a>{' '}
                   is a free tool for querying OpenStreetMap data (land use,
-                  boundaries, features) in an area — no account needed. Useful
+                  boundaries, features) in an area, no account needed. Useful
                   for understanding an area, though it will not tell you who owns
                   anything.
                 </li>
@@ -229,12 +231,12 @@ export default function LandPage() {
             </h2>
             <div className="mt-4 space-y-4 text-stone-700 text-base leading-relaxed">
               <p>
-                These are the actual HM Land Registry forms — the correct ones,
+                These are the actual HM Land Registry forms, the correct ones,
                 confirmed on GOV.UK:
               </p>
               <ul className="list-disc pl-5 space-y-3">
                 <li>
-                  <strong>Form ADV1</strong> — the application to be registered
+                  <strong>Form ADV1</strong>, the application to be registered
                   as proprietor by adverse possession (registered land).{' '}
                   <a
                     href="https://www.gov.uk/government/publications/adverse-possession-registration-adv1"
@@ -246,7 +248,7 @@ export default function LandPage() {
                   </a>
                 </li>
                 <li>
-                  <strong>Form ST1</strong> — the statement of truth setting out
+                  <strong>Form ST1</strong>, the statement of truth setting out
                   the evidence for your claim, which goes with ADV1.{' '}
                   <a
                     href="https://www.gov.uk/government/publications/adverse-possession-statement-of-truth-st1"
@@ -291,7 +293,7 @@ export default function LandPage() {
                 >
                   HM Land Registry fees page
                 </a>{' '}
-                — check the current figure there rather than trusting a number
+               , check the current figure there rather than trusting a number
                 quoted elsewhere.
               </p>
             </div>
@@ -313,8 +315,8 @@ export default function LandPage() {
                 that does not exist.
               </p>
               <p>
-                If you have land you have genuinely used for years — a boundary
-                strip, a scrap of ground next to your home — and you think you
+                If you have land you have genuinely used for years, a boundary
+                strip, a scrap of ground next to your home, and you think you
                 may have a real claim, the honest next step is to read Practice
                 Guide 4 in full and speak to a solicitor before spending money
                 or making a move.
