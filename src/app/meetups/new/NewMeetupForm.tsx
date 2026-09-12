@@ -4,9 +4,18 @@ import { useState, useRef } from 'react'
 import { createMeetupAction } from '../actions'
 
 const MAX_QUESTIONS = 5
+const MAX_POLLS = 5
+const MAX_POLL_OPTIONS = 8
+
+type PollDraft = {
+  title: string
+  type: 'date' | 'location' | 'custom'
+  options: string[]
+}
 
 export default function NewMeetupForm() {
   const [questions, setQuestions] = useState<string[]>([])
+  const [polls, setPolls] = useState<PollDraft[]>([])
   const [isOnline, setIsOnline] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -26,6 +35,50 @@ export default function NewMeetupForm() {
     setQuestions((q) => q.map((v, i) => (i === idx ? value : v)))
   }
 
+  function addPoll() {
+    if (polls.length < MAX_POLLS) {
+      setPolls((p) => [...p, { title: '', type: 'custom', options: ['', ''] }])
+    }
+  }
+
+  function removePoll(idx: number) {
+    setPolls((p) => p.filter((_, i) => i !== idx))
+  }
+
+  function updatePoll(idx: number, patch: Partial<PollDraft>) {
+    setPolls((p) => p.map((v, i) => (i === idx ? { ...v, ...patch } : v)))
+  }
+
+  function addPollOption(pollIdx: number) {
+    setPolls((p) =>
+      p.map((v, i) =>
+        i === pollIdx && v.options.length < MAX_POLL_OPTIONS
+          ? { ...v, options: [...v.options, ''] }
+          : v
+      )
+    )
+  }
+
+  function removePollOption(pollIdx: number, optIdx: number) {
+    setPolls((p) =>
+      p.map((v, i) =>
+        i === pollIdx
+          ? { ...v, options: v.options.filter((_, j) => j !== optIdx) }
+          : v
+      )
+    )
+  }
+
+  function updatePollOption(pollIdx: number, optIdx: number, value: string) {
+    setPolls((p) =>
+      p.map((v, i) =>
+        i === pollIdx
+          ? { ...v, options: v.options.map((o, j) => (j === optIdx ? value : o)) }
+          : v
+      )
+    )
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmitting(true)
@@ -34,6 +87,16 @@ export default function NewMeetupForm() {
       const formData = new FormData(e.currentTarget)
       // Inject question values (named question_0 ... question_4).
       questions.forEach((q, i) => formData.set(`question_${i}`, q))
+      // Inject poll values (poll_{i}_title / _type / _optcount / _opt_{j}).
+      formData.set('poll_count', String(polls.length))
+      polls.forEach((poll, i) => {
+        formData.set(`poll_${i}_title`, poll.title)
+        formData.set(`poll_${i}_type`, poll.type)
+        formData.set(`poll_${i}_optcount`, String(poll.options.length))
+        poll.options.forEach((opt, j) => {
+          formData.set(`poll_${i}_opt_${j}`, opt)
+        })
+      })
       formData.set('is_online', isOnline ? 'true' : 'false')
       await createMeetupAction(formData)
     } catch (err) {
@@ -190,6 +253,100 @@ export default function NewMeetupForm() {
             className="self-start text-sm text-stone-600 underline hover:text-stone-900"
           >
             + Add a question
+          </button>
+        )}
+      </fieldset>
+
+      {/* Polls */}
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium text-stone-700">
+          Polls (let people vote){' '}
+          <span className="font-normal text-stone-400">(optional, up to {MAX_POLLS})</span>
+        </legend>
+        <p className="text-xs text-stone-500">
+          Ask attendees to vote on a date, a location or anything else. People
+          can tick more than one option per poll.
+        </p>
+        {polls.map((poll, pi) => (
+          <div
+            key={pi}
+            className="flex flex-col gap-3 rounded border border-stone-200 bg-stone-50 p-4"
+          >
+            <div className="flex items-start gap-2">
+              <input
+                type="text"
+                value={poll.title}
+                onChange={(e) => updatePoll(pi, { title: e.target.value })}
+                maxLength={200}
+                placeholder={`Poll ${pi + 1} question`}
+                className="flex-1 rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+              <button
+                type="button"
+                onClick={() => removePoll(pi)}
+                className="text-stone-400 hover:text-red-600 text-xs pt-2"
+              >
+                Remove
+              </button>
+            </div>
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="text-stone-500">Poll type</span>
+              <select
+                value={poll.type}
+                onChange={(e) =>
+                  updatePoll(pi, {
+                    type: e.target.value as PollDraft['type'],
+                  })
+                }
+                className="w-fit rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+              >
+                <option value="date">Dates</option>
+                <option value="location">Locations</option>
+                <option value="custom">Other</option>
+              </select>
+            </label>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs text-stone-500">Options</span>
+              {poll.options.map((opt, oi) => (
+                <div key={oi} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={opt}
+                    onChange={(e) => updatePollOption(pi, oi, e.target.value)}
+                    maxLength={200}
+                    placeholder={`Option ${oi + 1}`}
+                    className="flex-1 rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                  />
+                  {poll.options.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removePollOption(pi, oi)}
+                      className="text-stone-400 hover:text-red-600 text-xs"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              {poll.options.length < MAX_POLL_OPTIONS && (
+                <button
+                  type="button"
+                  onClick={() => addPollOption(pi)}
+                  className="self-start text-sm text-stone-600 underline hover:text-stone-900"
+                >
+                  + Add an option
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {polls.length < MAX_POLLS && (
+          <button
+            type="button"
+            onClick={addPoll}
+            className="self-start text-sm text-stone-600 underline hover:text-stone-900"
+          >
+            + Add a poll
           </button>
         )}
       </fieldset>

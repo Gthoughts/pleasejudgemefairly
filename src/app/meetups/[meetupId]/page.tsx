@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import RegistrationSection from './RegistrationSection'
+import PollsSection, { type Poll } from './PollsSection'
 import MeetupPostItem from './MeetupPostItem'
 import MeetupRootReplyForm from './MeetupRootReplyForm'
 import CopyShortLinkButton from './CopyShortLinkButton'
@@ -151,7 +152,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
     supabase
       .from('meetups')
       .select(
-        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, users:organiser_id(username), meetup_questions(id, question_text, display_order)'
+        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, users:organiser_id(username), meetup_questions(id, question_text, display_order), meetup_polls(id, title, poll_type, display_order, meetup_poll_options(id, label, display_order, meetup_poll_votes(user_id)))'
       )
       .eq('id', meetupId)
       .maybeSingle<{
@@ -167,6 +168,18 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
         slug: string
         users: { username: string } | null
         meetup_questions: { id: string; question_text: string; display_order: number }[]
+        meetup_polls: {
+          id: string
+          title: string
+          poll_type: 'date' | 'location' | 'custom'
+          display_order: number
+          meetup_poll_options: {
+            id: string
+            label: string
+            display_order: number
+            meetup_poll_votes: { user_id: string }[]
+          }[]
+        }[]
       }>(),
     supabase
       .from('meetup_registrations')
@@ -217,6 +230,25 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
   const questions = (meetup.meetup_questions ?? []).sort(
     (a, b) => a.display_order - b.display_order
   )
+
+  const polls: Poll[] = (meetup.meetup_polls ?? [])
+    .slice()
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      poll_type: p.poll_type,
+      display_order: p.display_order,
+      options: (p.meetup_poll_options ?? [])
+        .slice()
+        .sort((a, b) => a.display_order - b.display_order)
+        .map((o) => ({
+          id: o.id,
+          label: o.label,
+          display_order: o.display_order,
+          voterIds: (o.meetup_poll_votes ?? []).map((v) => v.user_id),
+        })),
+    }))
 
   const allRegs = registrationsRes.data ?? []
   const confirmed = allRegs.filter((r) => !r.is_waitlist)
@@ -366,6 +398,23 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
               />
             </div>
           </section>
+
+          {/* ---- Section: Polls ---- */}
+          {polls.length > 0 && (
+            <section>
+              <h2 className="text-xl font-semibold">Polls</h2>
+              <p className="mt-1 text-sm text-stone-500">
+                Help the organiser decide. You can tick more than one option.
+              </p>
+              <div className="mt-4">
+                <PollsSection
+                  meetupId={meetupId}
+                  currentUserId={user.id}
+                  polls={polls}
+                />
+              </div>
+            </section>
+          )}
 
           {/* ---- Section 2: What's needed ---- */}
           <section>

@@ -246,6 +246,61 @@ export async function createMeetupAction(formData: FormData) {
     if (qErr) throw new Error(qErr.message)
   }
 
+  // Insert polls (if any). A poll is only created when it has a non-empty
+  // title and at least 2 non-empty options.
+  const MAX_POLLS = 5
+  const MAX_POLL_OPTIONS = 8
+  const pollCountRaw = formData.get('poll_count')
+  const pollCount =
+    typeof pollCountRaw === 'string' ? Math.min(parseInt(pollCountRaw, 10) || 0, MAX_POLLS) : 0
+  let pollDisplayOrder = 0
+  for (let i = 0; i < pollCount; i++) {
+    const titleRaw = formData.get(`poll_${i}_title`)
+    const pollTitle = typeof titleRaw === 'string' ? titleRaw.trim() : ''
+    if (pollTitle.length === 0) continue
+    if (pollTitle.length > 200) throw new Error('Poll question must be 1–200 characters.')
+
+    const typeRaw = formData.get(`poll_${i}_type`)
+    const pollType =
+      typeRaw === 'date' || typeRaw === 'location' || typeRaw === 'custom' ? typeRaw : 'custom'
+
+    const optCountRaw = formData.get(`poll_${i}_optcount`)
+    const optCount =
+      typeof optCountRaw === 'string'
+        ? Math.min(parseInt(optCountRaw, 10) || 0, MAX_POLL_OPTIONS)
+        : 0
+    const optionLabels: string[] = []
+    for (let j = 0; j < optCount; j++) {
+      const optRaw = formData.get(`poll_${i}_opt_${j}`)
+      const label = typeof optRaw === 'string' ? optRaw.trim() : ''
+      if (label.length === 0) continue
+      if (label.length > 200) throw new Error('Poll option must be 1–200 characters.')
+      optionLabels.push(label)
+    }
+    if (optionLabels.length < 2) continue
+
+    const { data: poll, error: pollErr } = await supabase
+      .from('meetup_polls')
+      .insert({
+        meetup_id: meetup.id,
+        title: pollTitle,
+        poll_type: pollType,
+        display_order: pollDisplayOrder,
+      })
+      .select('id')
+      .single()
+    if (pollErr) throw new Error(pollErr.message)
+    pollDisplayOrder++
+
+    const optionRows = optionLabels.map((label, idx) => ({
+      poll_id: poll.id,
+      label,
+      display_order: idx,
+    }))
+    const { error: optErr } = await supabase.from('meetup_poll_options').insert(optionRows)
+    if (optErr) throw new Error(optErr.message)
+  }
+
   revalidatePath('/meetups')
   redirect(`/meetups/${meetup.id}`)
 }
@@ -368,6 +423,49 @@ export async function unregisterFromMeetupAction(formData: FormData) {
     .eq('meetup_id', meetupId)
     .eq('user_id', user.id)
   if (error) throw new Error(error.message)
+
+  revalidatePath(`/meetups/${meetupId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Polls / voting
+// ---------------------------------------------------------------------------
+
+// Toggle a vote on a poll option. Polls are multiple-choice: a user may
+// have votes on several options in the same poll, and each option toggles
+// independently. If the (option, user) row exists we remove it; otherwise
+// we insert it.
+export async function voteMeetupPollAction(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const optionId = requireString(formData.get('option_id'), 'option_id')
+  const pollId = requireString(formData.get('poll_id'), 'poll_id')
+  const meetupId = requireString(formData.get('meetup_id'), 'meetup_id')
+
+  // Is there already a vote for this option by this user?
+  const { data: existing } = await supabase
+    .from('meetup_poll_votes')
+    .select('id')
+    .eq('option_id', optionId)
+    .eq('user_id', user.id)
+    .maybeSingle<{ id: string }>()
+
+  if (existing) {
+    const { error } = await supabase
+      .from('meetup_poll_votes')
+      .delete()
+      .eq('id', existing.id)
+      .eq('user_id', user.id)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('meetup_poll_votes')
+      .insert({ option_id: optionId, poll_id: pollId, user_id: user.id })
+    if (error) {
+      // Duplicate key = vote already exists (racing submit); treat as success.
+      if (!error.message.includes('duplicate') && !error.message.includes('unique'))
+        throw new Error(error.message)
+    }
+  }
 
   revalidatePath(`/meetups/${meetupId}`)
 }
