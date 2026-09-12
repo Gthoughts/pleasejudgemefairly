@@ -2,9 +2,9 @@ import Link from 'next/link'
 import SiteHeader from '@/components/SiteHeader'
 import SiteFooter from '@/components/SiteFooter'
 
-// Homepage: one YouTube video (privacy-enhanced domain), a warm welcome
-// line, a quiet link into the discussion, a small clickable box that
-// leads to The Accord, and a small dedication. No nav clutter, no
+// Homepage: a full-screen background image with the content layered on top —
+// a small "It only takes One" line, a small YouTube video, a quiet link into
+// the discussion, an install box, and a small dedication. No nav clutter, no
 // popups, no cookie banner.
 //
 // Sasquatch Music Festival 2009 "first follower" clip.
@@ -12,45 +12,43 @@ const HOMEPAGE_VIDEO_ID = 'GA8z7f7a2Pk'
 
 export default function HomePage() {
   return (
-    <>
+    <div className="relative min-h-screen flex flex-col">
+      {/* Full-screen background image */}
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/home/it-only-takes-one.png')" }}
+      />
+      {/* Soft scrim so overlaid text stays readable (adjust/remove to taste) */}
+      <div aria-hidden className="fixed inset-0 -z-10 bg-white/55" />
+
       <SiteHeader />
       <main className="flex-1 flex flex-col items-center px-6 pt-16 pb-20">
-        <p className="mb-4 text-center text-sm text-stone-600 tracking-wide">
+        <p className="mb-4 text-center text-sm text-stone-700 tracking-wide">
           It only takes One
         </p>
 
-        <div className="w-full max-w-4xl flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
-          {/* Small video, left */}
-          <div className="w-full sm:w-1/3 shrink-0">
-            <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm ring-1 ring-stone-200 bg-black">
-              <iframe
-                className="absolute inset-0 h-full w-full"
-                src={`https://www.youtube-nocookie.com/embed/${HOMEPAGE_VIDEO_ID}?rel=0&modestbranding=1`}
-                title="Homepage video"
-                loading="lazy"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-
-          {/* Image, right */}
-          <div className="w-full sm:flex-1">
-            <img
-              src="/home/it-only-takes-one.png"
-              alt="It only takes one"
-              className="w-full h-auto rounded-lg shadow-sm ring-1 ring-stone-200"
+        {/* Small video, over the image */}
+        <div className="w-full max-w-xs">
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md ring-1 ring-stone-300 bg-black">
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src={`https://www.youtube-nocookie.com/embed/${HOMEPAGE_VIDEO_ID}?rel=0&modestbranding=1`}
+              title="Homepage video"
+              loading="lazy"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
             />
           </div>
         </div>
 
-        <p className="mt-20 text-center text-lg sm:text-xl text-stone-800 font-normal">
+        <p className="mt-16 text-center text-lg sm:text-xl text-stone-900 font-medium drop-shadow-sm">
           You found us. We&rsquo;re so glad you did.
         </p>
 
         <Link
           href="/discuss"
-          className="mt-10 text-sm text-stone-600 hover:text-stone-900 hover:underline underline-offset-4"
+          className="mt-10 text-sm text-stone-800 hover:text-stone-950 hover:underline underline-offset-4 font-medium"
         >
           join the conversation &rarr;
         </Link>
@@ -59,7 +57,7 @@ export default function HomePage() {
           aria-label="Install to home screen"
           className="mt-16 w-full max-w-2xl"
         >
-          <details className="rounded border border-stone-200 bg-white/40">
+          <details className="rounded border border-stone-200 bg-white/70 backdrop-blur-sm">
             <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer px-5 py-4 text-sm font-medium text-stone-700 hover:text-stone-900 select-none flex items-center justify-between">
               <span>Add this to your phone&rsquo;s home screen</span>
               <span
@@ -121,17 +119,17 @@ export default function HomePage() {
           aria-label="Dedication"
           className="mt-24 flex flex-col items-center"
         >
-          <p className="text-center text-sm italic text-stone-500">
+          <p className="text-center text-sm italic text-stone-600">
             &ldquo;please judge me fairly&rdquo;
           </p>
           <details className="mt-2 text-center">
             <summary
-              className="list-none cursor-pointer text-sm text-stone-500 underline decoration-dotted decoration-stone-400 underline-offset-4 hover:text-stone-700 hover:decoration-stone-600 focus-visible:outline-none focus-visible:text-stone-700 [&::-webkit-details-marker]:hidden"
+              className="list-none cursor-pointer text-sm text-stone-600 underline decoration-dotted decoration-stone-500 underline-offset-4 hover:text-stone-800 hover:decoration-stone-700 focus-visible:outline-none focus-visible:text-stone-800 [&::-webkit-details-marker]:hidden"
               aria-label="Errol Graham, 1961 to 2018. Click to read about him."
             >
               &mdash; Errol Graham, 1961&ndash;2018
             </summary>
-            <p className="mx-auto mt-5 max-w-md px-4 text-sm leading-relaxed text-stone-600">
+            <p className="mx-auto mt-5 max-w-md px-4 text-sm leading-relaxed text-stone-700 bg-white/60 rounded py-3">
               Errol Graham died in 2018 after his benefits were stopped.
               He weighed four and a half stone when he was found. The
               phrase was in an unsent letter to the DWP.
@@ -140,6 +138,6 @@ export default function HomePage() {
         </section>
       </main>
       <SiteFooter />
-    </>
+    </div>
   )
 }
