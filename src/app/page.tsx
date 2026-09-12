@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import SiteHeader from '@/components/SiteHeader'
 import SiteFooter from '@/components/SiteFooter'
+import HomeVideo from './HomeVideo'
 
 // Homepage: a full-screen background image with the content layered on top —
 // a small "It only takes One" line, a small YouTube video, a quiet link into
@@ -28,18 +29,9 @@ export default function HomePage() {
           It only takes One
         </p>
 
-        {/* Small video, over the image, aligned left */}
+        {/* Small video with a dismissible cover image, aligned left */}
         <div className="w-full max-w-xs self-start">
-          <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md ring-1 ring-stone-300 bg-black">
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={`https://www.youtube-nocookie.com/embed/${HOMEPAGE_VIDEO_ID}?rel=0&modestbranding=1`}
-              title="Homepage video"
-              loading="lazy"
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
+          <HomeVideo videoId={HOMEPAGE_VIDEO_ID} />
         </div>
 
         <p className="mt-16 text-center text-lg sm:text-xl text-stone-900 font-medium drop-shadow-sm">
