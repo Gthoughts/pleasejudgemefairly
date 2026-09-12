@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import MeetupsHeader from '@/components/MeetupsHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
+import { penceToPounds } from '@/lib/money'
 import OnlineEventToggle from '../OnlineEventToggle'
 import {
   editMeetupAction,
@@ -44,7 +45,7 @@ export default async function ManageMeetupPage(
   const { data: meetup } = await supabase
     .from('meetups')
     .select(
-      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, postcode, meetup_questions(id, question_text, display_order)'
+      'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, postcode, has_fee, fee_normal_pence, fee_discount_pence, meetup_questions(id, question_text, display_order)'
     )
     .eq('id', meetupId)
     .maybeSingle<{
@@ -58,6 +59,9 @@ export default async function ManageMeetupPage(
       organiser_id: string
       max_attendees: number | null
       postcode: string | null
+      has_fee: boolean
+      fee_normal_pence: number | null
+      fee_discount_pence: number | null
       meetup_questions: { id: string; question_text: string; display_order: number }[]
     }>()
 
@@ -472,6 +476,63 @@ export default async function ManageMeetupPage(
                 </label>
 
                 <OnlineEventToggle defaultOnline={meetup.is_online} />
+
+                {/* Site charge / camping fee — native select needs no JS
+                    handler, so it is safe inside this server component. The
+                    action ignores the price fields when has_fee is 'false'. */}
+                <fieldset className="flex flex-col gap-3">
+                  <legend className="text-sm font-medium text-stone-700">
+                    Site charge / camping fee
+                  </legend>
+                  <p className="text-xs text-stone-500">
+                    We never charge for meetups. This is the standard site/camping cost paid
+                    directly to the operators &mdash; often at a discount.
+                  </p>
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="text-stone-700 font-medium">Is there a site charge?</span>
+                    <select
+                      name="has_fee"
+                      defaultValue={meetup.has_fee ? 'true' : 'false'}
+                      className="w-fit rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="text-stone-700 font-medium">Normal price per person (£)</span>
+                    <input
+                      name="fee_normal"
+                      type="text"
+                      inputMode="decimal"
+                      defaultValue={
+                        meetup.fee_normal_pence != null
+                          ? penceToPounds(meetup.fee_normal_pence)
+                          : ''
+                      }
+                      placeholder="e.g. 15"
+                      className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-32"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="text-stone-700 font-medium">
+                      Discounted price per person (£){' '}
+                      <span className="font-normal text-stone-400">(leave blank if none)</span>
+                    </span>
+                    <input
+                      name="fee_discount"
+                      type="text"
+                      inputMode="decimal"
+                      defaultValue={
+                        meetup.fee_discount_pence != null
+                          ? penceToPounds(meetup.fee_discount_pence)
+                          : ''
+                      }
+                      placeholder="e.g. 10"
+                      className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-32"
+                    />
+                  </label>
+                </fieldset>
 
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="text-stone-700 font-medium">

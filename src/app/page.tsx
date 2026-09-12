@@ -15,19 +15,31 @@ export default function HomePage() {
     <>
       <SiteHeader />
       <main className="flex-1 flex flex-col items-center px-6 pt-16 pb-20">
-        <p className="mb-8 max-w-2xl text-center italic text-stone-600 text-base sm:text-lg leading-relaxed">
-          Sitting on the grass is fine, until it isn&apos;t.
+        <p className="mb-4 text-center text-sm text-stone-600 tracking-wide">
+          It only takes One
         </p>
 
-        <div className="w-full max-w-4xl">
-          <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm ring-1 ring-stone-200 bg-black">
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={`https://www.youtube-nocookie.com/embed/${HOMEPAGE_VIDEO_ID}?rel=0&modestbranding=1`}
-              title="Homepage video"
-              loading="lazy"
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
+        <div className="w-full max-w-4xl flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
+          {/* Small video, left */}
+          <div className="w-full sm:w-1/3 shrink-0">
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm ring-1 ring-stone-200 bg-black">
+              <iframe
+                className="absolute inset-0 h-full w-full"
+                src={`https://www.youtube-nocookie.com/embed/${HOMEPAGE_VIDEO_ID}?rel=0&modestbranding=1`}
+                title="Homepage video"
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+
+          {/* Image, right */}
+          <div className="w-full sm:flex-1">
+            <img
+              src="/home/it-only-takes-one.png"
+              alt="It only takes one"
+              className="w-full h-auto rounded-lg shadow-sm ring-1 ring-stone-200"
             />
           </div>
         </div>
@@ -41,19 +53,6 @@ export default function HomePage() {
           className="mt-10 text-sm text-stone-600 hover:text-stone-900 hover:underline underline-offset-4"
         >
           join the conversation &rarr;
-        </Link>
-
-        <Link
-          href="/accord"
-          aria-label="Read The Accord — a community commitment"
-          className="mt-14 group inline-flex flex-col items-center gap-1.5 rounded-md border border-stone-200 bg-white/60 px-7 py-4 text-center transition-colors hover:border-stone-400 hover:bg-white"
-        >
-          <span className="text-[10px] uppercase tracking-[0.28em] text-stone-500 group-hover:text-stone-700">
-            A community commitment
-          </span>
-          <span className="font-serif italic text-base text-stone-700 group-hover:text-stone-900">
-            The Accord
-          </span>
         </Link>
 
         <section

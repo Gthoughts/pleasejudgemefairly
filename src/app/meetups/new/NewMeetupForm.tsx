@@ -17,6 +17,7 @@ export default function NewMeetupForm() {
   const [questions, setQuestions] = useState<string[]>([])
   const [polls, setPolls] = useState<PollDraft[]>([])
   const [isOnline, setIsOnline] = useState(false)
+  const [hasFee, setHasFee] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
@@ -98,6 +99,7 @@ export default function NewMeetupForm() {
         })
       })
       formData.set('is_online', isOnline ? 'true' : 'false')
+      formData.set('has_fee', hasFee ? 'true' : 'false')
       await createMeetupAction(formData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -172,6 +174,55 @@ export default function NewMeetupForm() {
           Used to show a small map. Enter N/A if unknown or it&rsquo;s an online event.
         </span>
       </label>
+
+      {/* Site charge / camping fee */}
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium text-stone-700">
+          Site charge / camping fee{' '}
+          <span className="font-normal text-stone-400">(optional)</span>
+        </legend>
+        <p className="text-xs text-stone-500">
+          We never charge for meetups. This is the standard site/camping cost paid directly to the
+          operators &mdash; often at a discount.
+        </p>
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={hasFee}
+            onChange={(e) => setHasFee(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <span className="text-stone-700">This meetup has a site charge / camping fee</span>
+        </label>
+        {hasFee && (
+          <div className="flex flex-col gap-3 rounded border border-stone-200 bg-stone-50 p-4">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-stone-700 font-medium">Normal price per person (£)</span>
+              <input
+                name="fee_normal"
+                type="text"
+                inputMode="decimal"
+                required
+                placeholder="e.g. 15"
+                className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-32"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-stone-700 font-medium">
+                Discounted price per person (£){' '}
+                <span className="font-normal text-stone-400">(leave blank if none)</span>
+              </span>
+              <input
+                name="fee_discount"
+                type="text"
+                inputMode="decimal"
+                placeholder="e.g. 10"
+                className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-32"
+              />
+            </label>
+          </div>
+        )}
+      </fieldset>
 
       {/* Online toggle */}
       <div className="flex items-center gap-3 text-sm">

@@ -4,6 +4,7 @@ import MeetupsHeader from '@/components/MeetupsHeader'
 import SiteFooter from '@/components/SiteFooter'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminUserIds, getDisplayUsername } from '@/lib/admin'
+import { penceToPounds } from '@/lib/money'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import RegistrationSection from './RegistrationSection'
 import PollsSection, { type Poll } from './PollsSection'
@@ -153,7 +154,7 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
     supabase
       .from('meetups')
       .select(
-        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, latitude, longitude, postcode, users:organiser_id(username), meetup_questions(id, question_text, display_order), meetup_polls(id, title, poll_type, display_order, meetup_poll_options(id, label, display_order, meetup_poll_votes(user_id)))'
+        'id, title, description, date_time, location, is_online, status, organiser_id, max_attendees, slug, latitude, longitude, postcode, has_fee, fee_normal_pence, fee_discount_pence, users:organiser_id(username), meetup_questions(id, question_text, display_order), meetup_polls(id, title, poll_type, display_order, meetup_poll_options(id, label, display_order, meetup_poll_votes(user_id)))'
       )
       .eq('id', meetupId)
       .maybeSingle<{
@@ -170,6 +171,9 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
         latitude: number | null
         longitude: number | null
         postcode: string | null
+        has_fee: boolean
+        fee_normal_pence: number | null
+        fee_discount_pence: number | null
         users: { username: string } | null
         meetup_questions: { id: string; question_text: string; display_order: number }[]
         meetup_polls: {
@@ -398,6 +402,21 @@ export default async function MeetupPage(props: PageProps<'/meetups/[meetupId]'>
                     location={meetup.location}
                   />
                 </div>
+              </div>
+            )}
+
+            {meetup.has_fee && meetup.fee_normal_pence != null && (
+              <div className="mt-6">
+                <h2 className="text-sm font-medium text-stone-500">Cost</h2>
+                <p className="mt-2 text-sm text-stone-800">
+                  Site charge: £{penceToPounds(meetup.fee_normal_pence)} per person
+                  {meetup.fee_discount_pence != null &&
+                    `, discounted to £${penceToPounds(meetup.fee_discount_pence)} for our group`}
+                </p>
+                <p className="mt-1 text-xs text-stone-500">
+                  We never charge for meetups. This is the standard site/camping cost, paid directly
+                  to the operators.
+                </p>
               </div>
             )}
 

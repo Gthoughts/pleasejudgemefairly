@@ -9,6 +9,7 @@ import { RATING_CONFIG } from '@/lib/rating/config'
 import { MAX_REPLY_DEPTH } from '@/lib/discuss'
 import { slugify, findFreeSlug, SLUG_MIN, SLUG_MAX, SLUG_PATTERN } from '@/lib/meetup-slug'
 import { geocodePostcode } from '@/lib/geocode'
+import { poundsToPence } from '@/lib/money'
 
 const MAX_CONTENT = 20000
 
@@ -217,6 +218,18 @@ export async function createMeetupAction(formData: FormData) {
   }
   const slug = await findFreeSlug(supabase, base)
 
+  // Site charge / camping fee (display-only; the platform never charges).
+  // Prices are collected only when the organiser turns the fee on.
+  const hasFee = formData.get('has_fee') === 'true'
+  let feeNormalPence: number | null = null
+  let feeDiscountPence: number | null = null
+  if (hasFee) {
+    feeNormalPence = poundsToPence(formData.get('fee_normal'))
+    if (feeNormalPence === null)
+      throw new Error('Enter the normal price per person (or turn off the site charge).')
+    feeDiscountPence = poundsToPence(formData.get('fee_discount'))
+  }
+
   const { data: meetup, error: meetupErr } = await supabase
     .from('meetups')
     .insert({
@@ -231,6 +244,9 @@ export async function createMeetupAction(formData: FormData) {
       postcode: geo ? geo.postcode : postcodeRaw,
       latitude: geo ? geo.latitude : null,
       longitude: geo ? geo.longitude : null,
+      has_fee: hasFee,
+      fee_normal_pence: feeNormalPence,
+      fee_discount_pence: feeDiscountPence,
     })
     .select('id')
     .single()
@@ -340,6 +356,18 @@ export async function editMeetupAction(formData: FormData) {
   if (postcodeRaw.length === 0) throw new Error('Postcode is required (or enter N/A).')
   const geo = await geocodePostcode(postcodeRaw)
 
+  // Site charge / camping fee (display-only). Prices are only stored when
+  // the fee is turned on; otherwise they are cleared back to null.
+  const hasFee = formData.get('has_fee') === 'true'
+  let feeNormalPence: number | null = null
+  let feeDiscountPence: number | null = null
+  if (hasFee) {
+    feeNormalPence = poundsToPence(formData.get('fee_normal'))
+    if (feeNormalPence === null)
+      throw new Error('Enter the normal price per person (or turn off the site charge).')
+    feeDiscountPence = poundsToPence(formData.get('fee_discount'))
+  }
+
   const { error } = await supabase
     .from('meetups')
     .update({
@@ -352,6 +380,9 @@ export async function editMeetupAction(formData: FormData) {
       postcode: geo ? geo.postcode : postcodeRaw,
       latitude: geo ? geo.latitude : null,
       longitude: geo ? geo.longitude : null,
+      has_fee: hasFee,
+      fee_normal_pence: feeNormalPence,
+      fee_discount_pence: feeDiscountPence,
       updated_at: new Date().toISOString(),
     })
     .eq('id', meetupId)
