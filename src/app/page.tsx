@@ -24,12 +24,12 @@ export default function HomePage() {
 
       <SiteHeader />
       <main className="flex-1 flex flex-col items-center px-6 pt-16 pb-20">
-        <p className="mb-4 text-center text-sm text-stone-700 tracking-wide">
+        <p className="mb-4 self-start text-left text-sm text-stone-700 tracking-wide">
           It only takes One
         </p>
 
-        {/* Small video, over the image */}
-        <div className="w-full max-w-xs">
+        {/* Small video, over the image, aligned left */}
+        <div className="w-full max-w-xs self-start">
           <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md ring-1 ring-stone-300 bg-black">
             <iframe
               className="absolute inset-0 h-full w-full"
