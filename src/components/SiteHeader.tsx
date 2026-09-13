@@ -15,6 +15,7 @@ import SignOutButton from './SignOutButton'
 type NavItem = { href: string; label: string; adminOnly?: boolean }
 
 const NAV: NavItem[] = [
+  { href: '/calendar', label: 'Calendar' },
   { href: '/discuss', label: 'Discussion' },
   { href: '/library', label: 'Library' },
   { href: '/videos', label: 'Videos' },

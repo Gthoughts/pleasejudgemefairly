@@ -8,12 +8,18 @@ export const metadata = {
   title: 'Organise a meetup — a place for you',
 }
 
-export default async function NewMeetupPage() {
+export default async function NewMeetupPage(props: PageProps<'/meetups/new'>) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/signin?next=/meetups/new')
+
+  const sp = await props.searchParams
+  const defaultDate =
+    typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date)
+      ? sp.date
+      : undefined
 
   return (
     <>
@@ -31,7 +37,7 @@ export default async function NewMeetupPage() {
             No payments, no private messages.
           </p>
           <div className="mt-8">
-            <NewMeetupForm />
+            <NewMeetupForm defaultDate={defaultDate} />
           </div>
         </div>
       </main>

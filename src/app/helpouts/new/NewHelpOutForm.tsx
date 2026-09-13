@@ -12,11 +12,11 @@ function sanitizeFileName(name: string): string {
   return cleaned.length > 0 ? cleaned : 'photo'
 }
 
-export default function NewHelpOutForm() {
+export default function NewHelpOutForm({ defaultDate }: { defaultDate?: string }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [area, setArea] = useState('')
-  const [dates, setDates] = useState<string[]>([''])
+  const [dates, setDates] = useState<string[]>(defaultDate ? [defaultDate] : [''])
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)

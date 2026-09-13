@@ -13,7 +13,7 @@ type PollDraft = {
   options: string[]
 }
 
-export default function NewMeetupForm() {
+export default function NewMeetupForm({ defaultDate }: { defaultDate?: string }) {
   const [questions, setQuestions] = useState<string[]>([])
   const [polls, setPolls] = useState<PollDraft[]>([])
   const [isOnline, setIsOnline] = useState(false)
@@ -151,6 +151,7 @@ export default function NewMeetupForm() {
           name="date_time"
           type="datetime-local"
           required
+          defaultValue={defaultDate ? `${defaultDate}T18:00` : undefined}
           className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400 w-fit"
         />
       </label>

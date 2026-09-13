@@ -8,12 +8,18 @@ export const metadata = {
   title: 'Ask for help — a place for you',
 }
 
-export default async function NewHelpOutPage() {
+export default async function NewHelpOutPage(props: PageProps<'/helpouts/new'>) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/signin?next=/helpouts/new')
+
+  const sp = await props.searchParams
+  const defaultDate =
+    typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date)
+      ? sp.date
+      : undefined
 
   return (
     <>
@@ -33,7 +39,7 @@ export default async function NewHelpOutPage() {
             messaging them once someone offers.
           </p>
           <div className="mt-8">
-            <NewHelpOutForm />
+            <NewHelpOutForm defaultDate={defaultDate} />
           </div>
         </div>
       </main>
