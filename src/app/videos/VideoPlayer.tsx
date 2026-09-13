@@ -98,27 +98,13 @@ export default function VideoPlayer({
   const [reportOpen, setReportOpen] = useState<boolean>(false)
   const [playing, setPlaying] = useState<boolean>(false)
 
-  // Persistent event counters shown in the debug pill so we can
-  // tell exactly which event source is firing.
-  const debugCountsRef = useRef<{
-    pd: number
-    pu: number
-    pc: number
-    ts: number
-    te: number
-    tc: number
-    swipes: number
-    votes: number
-  }>({ pd: 0, pu: 0, pc: 0, ts: 0, te: 0, tc: 0, swipes: 0, votes: 0 })
-  const [debugTick, setDebugTick] = useState(0)
-  const bumpDebug = (k: keyof typeof debugCountsRef.current) => {
-    debugCountsRef.current[k]++
-    setDebugTick((n) => n + 1)
-  }
-
-  // Live watched-seconds shown in the debug pill so we can diagnose
-  // whether the wall-clock tracker is accumulating as expected.
-  const [debugWatched, setDebugWatched] = useState<number>(0)
+  // (Debug instrumentation removed now the player is stable.) These are
+  // kept as harmless no-ops so the gesture handlers that referenced them
+  // stay intact without a visible on-screen counter.
+  const bumpDebug = (_k?: string) => {}
+  const setDebugWatched = (_n?: number) => {}
+  const setDebugTick = (_f?: (n: number) => number) => {}
+  const debugCountsRef = { current: { swipes: 0, votes: 0 } }
 
   // Iframe ref kept for a future YouTube IFrame API integration
   // (unmute via postMessage). Not currently wired because the
@@ -587,32 +573,6 @@ export default function VideoPlayer({
           {gestureHint}
         </div>
       ) : null}
-
-      {/* Debug indicator: top-right, persistent counters so we can
-          see exactly which event stream is (or isn't) firing.
-            pd/pu/pc = pointerdown/up/cancel
-            ts/te/tc = touchstart/end/cancel
-            sw = swipes classified
-            w  = seconds watched (need N for the 50% gate)
-            a  = active flag, if = isIframe flag */}
-      {(() => {
-        const c = debugCountsRef.current
-        void debugTick // keep in deps so re-renders track state
-        return (
-          <div className="pointer-events-none absolute top-2 right-2 z-30 rounded bg-black/80 px-2 py-1 text-[10px] font-mono leading-tight text-white text-right">
-            <div>pd:{c.pd} pu:{c.pu} pc:{c.pc}</div>
-            <div>ts:{c.ts} te:{c.te} tc:{c.tc}</div>
-            <div>sw:{c.swipes} v:{c.votes}</div>
-            <div>
-              w={Math.floor(debugWatched)}s/
-              {Math.ceil(effectiveDuration * (WATCH_GATE_PERCENT / 100))}s
-            </div>
-            <div>
-              a={active ? '1' : '0'} if={isIframe ? '1' : '0'}
-            </div>
-          </div>
-        )
-      })()}
 
       {reportOpen ? (
         <ReportModal
