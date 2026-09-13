@@ -102,6 +102,15 @@ export default function NewMeetupForm() {
       formData.set('has_fee', hasFee ? 'true' : 'false')
       await createMeetupAction(formData)
     } catch (err) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'digest' in err &&
+        typeof (err as { digest?: unknown }).digest === 'string' &&
+        (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+      ) {
+        throw err
+      }
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       setSubmitting(false)
     }

@@ -99,6 +99,18 @@ export default function NewHelpOutForm() {
       cleanDates.forEach((d) => fd.append('date', d))
       await createHelpOutAction(fd)
     } catch (err) {
+      // A successful server action redirect throws an internal Next.js
+      // signal (digest starts with 'NEXT_REDIRECT'). That is NOT an error,
+      // so let it through instead of flashing a red message.
+      if (
+        err &&
+        typeof err === 'object' &&
+        'digest' in err &&
+        typeof (err as { digest?: unknown }).digest === 'string' &&
+        (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+      ) {
+        throw err
+      }
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       setBusy(false)
     }

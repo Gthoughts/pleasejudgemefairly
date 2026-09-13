@@ -130,6 +130,15 @@ export default function NewVideoForm({ categories, subcatsByCategory }: Props) {
 
       await submitVideoAction(fd)
     } catch (err) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'digest' in err &&
+        typeof (err as { digest?: unknown }).digest === 'string' &&
+        (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+      ) {
+        throw err
+      }
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       setUploading(false)
       setBusy(false)
