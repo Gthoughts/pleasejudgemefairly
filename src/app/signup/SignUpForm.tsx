@@ -25,6 +25,23 @@ export default function SignUpForm() {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
 
+    // Validate the username format up front and explain the rules clearly,
+    // so people using spaces or special characters get a helpful message
+    // instead of a confusing rejection.
+    const uname = username.trim()
+    if (uname.length < 3 || uname.length > 32) {
+      setError('Username must be between 3 and 32 characters.')
+      setSubmitting(false)
+      return
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(uname)) {
+      setError(
+        'Usernames can only use letters and numbers (no spaces, and no special characters like ! . @ or apostrophes). Hyphens and underscores are allowed, for example Rebecca_J or rebecca-j.'
+      )
+      setSubmitting(false)
+      return
+    }
+
     // Check the username isn't already taken, so we can show a friendly
     // message instead of a cryptic duplicate-key error from the DB trigger.
     // (RLS blocks anon reads of public.users, so we use a SECURITY DEFINER
@@ -32,11 +49,11 @@ export default function SignUpForm() {
     try {
       const { data: available, error: checkError } = await supabase.rpc(
         'username_available',
-        { candidate: username }
+        { candidate: uname }
       )
       if (!checkError && available === false) {
         setError(
-          'That username is already taken — please choose a different one.'
+          'That username is already taken, please choose a different one.'
         )
         setSubmitting(false)
         return
@@ -50,7 +67,7 @@ export default function SignUpForm() {
       email,
       password,
       options: {
-        data: { username },
+        data: { username: uname },
         emailRedirectTo: `${siteUrl}/auth/callback?next=/`,
       },
     })
@@ -85,6 +102,10 @@ export default function SignUpForm() {
           className="rounded border border-stone-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-stone-400"
           autoComplete="username"
         />
+        <span className="text-xs text-stone-400">
+          Letters and numbers only. No spaces or special characters (hyphens and
+          underscores are fine). 3 to 32 characters.
+        </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
