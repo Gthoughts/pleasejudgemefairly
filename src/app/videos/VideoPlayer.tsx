@@ -355,11 +355,6 @@ export default function VideoPlayer({
       setTimeout(() => setGestureHint(null), 1200)
       return
     }
-    if (!qualified) {
-      setGestureHint(`Watch at least ${WATCH_GATE_PERCENT}% before voting.`)
-      setTimeout(() => setGestureHint(null), 1600)
-      return
-    }
     setVoteFlash(rating)
     // Auto-clear the flash after 1.5s so it visually reads as
     // "the vote landed" rather than a stuck state.
@@ -510,14 +505,6 @@ export default function VideoPlayer({
             <span>up: comments</span>
             <span className="mx-2">|</span>
             <span>hold 3s: report</span>
-            {!qualified ? (
-              <div className="mt-1">
-                watch {WATCH_GATE_PERCENT}% before your vote counts
-                {isIframe && !video.duration_seconds ? (
-                  <> (uploader did not set duration, using {FALLBACK_DURATION_S}s)</>
-                ) : null}
-              </div>
-            ) : null}
           </>
         ) : (
           <span>swipe up for comments. Sign in to vote or report.</span>
