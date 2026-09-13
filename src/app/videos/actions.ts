@@ -497,11 +497,6 @@ export async function voteOnVideoAction(formData: FormData) {
     { onConflict: 'user_id,content_type,content_id' }
   )
   if (error) {
-    if (error.message.toLowerCase().includes('policy')) {
-      throw new Error(
-        `Watch at least ${WATCH_GATE_PERCENT}% of the video before voting.`
-      )
-    }
     throw new Error(error.message)
   }
   revalidatePath(`/videos/${videoId}`)
